@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/kevinmbeaulieu/echo/echo"
+	"github.com/kevinmbeaulieu/eq-go/eq-go"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -17,13 +17,13 @@ func main() {
 	panicIfError(err)
 	pathPkgB, err := filepath.Abs("example/package-b")
 	panicIfError(err)
-	eq, msg := echo.DirectoriesEquivalent(pathPkgA, pathPkgB)
+	eq, msg := eqgo.DirectoriesEquivalent(pathPkgA, pathPkgB)
 	fmt.Printf("Directories result: %t (%s)\n", eq, msg)
 
 	// Compare two packages
 	pkgA := loadPackage("package-a", pathPkgA)
 	pkgB := loadPackage("package-b", pathPkgB)
-	eq, msg = echo.PackagesEquivalent(pkgA, pkgB)
+	eq, msg = eqgo.PackagesEquivalent(pkgA, pkgB)
 	fmt.Printf("Packages result: %t (%s)\n", eq, msg)
 
 	// Compare two files
@@ -34,7 +34,7 @@ func main() {
 	panicIfError(err)
 	fileB, err := parser.ParseFile(fset, pathBar, nil, parser.AllErrors)
 	panicIfError(err)
-	eq, msg = echo.FilesEquivalent(fileA, fileB)
+	eq, msg = eqgo.FilesEquivalent(fileA, fileB)
 	fmt.Printf("Files result: %t (%s)\n", eq, msg)
 }
 
@@ -48,7 +48,7 @@ func panicIfError(err error) {
 
 func loadPackage(name string, path string) *ast.Package {
 	pkg := ast.Package{
-		Name: name,
+		Name:  name,
 		Files: make(map[string]*ast.File),
 	}
 

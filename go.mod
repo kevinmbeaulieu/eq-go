@@ -1,3 +1,3 @@
-module github.com/kevinmbeaulieu/echo
+module github.com/kevinmbeaulieu/eq-go
 
 go 1.14

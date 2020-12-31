@@ -1,4 +1,4 @@
-package echo
+package eqgo
 
 import (
 	"fmt"
@@ -456,7 +456,7 @@ func compareSliceExpressions(a *ast.SliceExpr, b *ast.SliceExpr) (int, string) {
 	}
 
 	if cmp, msg := compareExpressions(a.X, b.X); cmp != 0 {
-		return cmp ,msg
+		return cmp, msg
 	}
 
 	if cmp, msg := compareExpressions(a.Low, b.Low); cmp != 0 {
@@ -479,7 +479,7 @@ func compareTypeAssertions(a *ast.TypeAssertExpr, b *ast.TypeAssertExpr) (int, s
 		return compareBools(a == nil, b == nil)
 	}
 
-	if cmp, msg := compareExpressions(a.Type, b.Type); cmp !=0 {
+	if cmp, msg := compareExpressions(a.Type, b.Type); cmp != 0 {
 		return cmp, msg
 	}
 

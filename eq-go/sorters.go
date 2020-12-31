@@ -1,4 +1,4 @@
-package echo
+package eqgo
 
 import (
 	"go/ast"

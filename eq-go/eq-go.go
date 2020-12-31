@@ -1,4 +1,4 @@
-package echo
+package eqgo
 
 import (
 	"fmt"
@@ -95,7 +95,6 @@ func FilesEquivalent(a *ast.File, b *ast.File) (bool, string) {
 
 	return true, ""
 }
-
 
 // ------- Private Helpers -------
 
