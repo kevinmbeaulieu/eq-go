@@ -70,8 +70,11 @@ func compareImportSpecs(a *ast.ImportSpec, b *ast.ImportSpec) (int, string) {
 		return cmp, fmt.Sprintf("import names do not match: %s", msg)
 	}
 
-	cmp, msg := compareBasicLiteratures(a.Path, b.Path)
-	return cmp, fmt.Sprintf("import paths do not match: %s", msg)
+	if cmp, msg := compareBasicLiteratures(a.Path, b.Path); cmp != 0 {
+		return cmp, fmt.Sprintf("import paths do not match: %s", msg)
+	}
+
+	return 0, ""
 }
 
 func compareBasicLiteratures(a *ast.BasicLit, b *ast.BasicLit) (int, string) {
@@ -248,7 +251,7 @@ func compareExpressions(a ast.Expr, b ast.Expr) (int, string) {
 		return compareChannelTypes(chanTypeA, chanTypeB)
 	}
 
-	return 0, ""
+	panic(fmt.Errorf("unrecognized expression type %v", a))
 }
 
 func compareTypeSpecs(a *ast.TypeSpec, b *ast.TypeSpec) (int, string) {
@@ -579,8 +582,11 @@ func compareFunctionTypes(a *ast.FuncType, b *ast.FuncType) (int, string) {
 		return cmp, fmt.Sprintf("function type parameters do not match: %s", msg)
 	}
 
-	cmp, msg := compareFieldLists(a.Results, b.Results)
-	return cmp, fmt.Sprintf("function type results do not match: %s", msg)
+	if cmp, msg := compareFieldLists(a.Results, b.Results); cmp != 0 {
+		return cmp, fmt.Sprintf("function type results do not match: %s", msg)
+	}
+
+	return 0, ""
 }
 
 func compareFieldLists(a *ast.FieldList, b *ast.FieldList) (int, string) {
@@ -614,8 +620,11 @@ func compareFields(a *ast.Field, b *ast.Field) (int, string) {
 		return cmp, fmt.Sprintf("field types do not match: %s", msg)
 	}
 
-	cmp, msg := compareBasicLiteratures(a.Tag, b.Tag)
-	return cmp, fmt.Sprintf("field tags do not match: %s", msg)
+	if cmp, msg := compareBasicLiteratures(a.Tag, b.Tag); cmp != 0 {
+		return cmp, fmt.Sprintf("field tags do not match: %s", msg)
+	}
+
+	return 0, ""
 }
 
 func compareInterfaceTypes(a *ast.InterfaceType, b *ast.InterfaceType) (int, string) {
@@ -732,8 +741,11 @@ func compareFuncDecls(a *ast.FuncDecl, b *ast.FuncDecl) (int, string) {
 		return cmp, msg
 	}
 
-	cmp, msg := compareBlockStatements(a.Body, b.Body)
-	return cmp, fmt.Sprintf("function bodies do not match: %s", msg)
+	if cmp, msg := compareBlockStatements(a.Body, b.Body); cmp != 0 {
+		return cmp, fmt.Sprintf("function bodies do not match: %s", msg)
+	}
+
+	return 0, ""
 }
 
 func compareEmptyStatements(a *ast.EmptyStmt, b *ast.EmptyStmt) (int, string) {
@@ -998,7 +1010,7 @@ func compareGenDeclLists(a []*ast.GenDecl, b []*ast.GenDecl) (int, string) {
 
 func compareFuncDeclLists(a []*ast.FuncDecl, b []*ast.FuncDecl) (int, string) {
 	if cmp, msg := compareInts(len(a), len(b)); cmp != 0 {
-		return cmp, fmt.Sprintf("legnth of function declaration lists do not match: %s", msg)
+		return cmp, fmt.Sprintf("length of function declaration lists do not match: %s", msg)
 	}
 
 	for i := range a {

@@ -112,7 +112,6 @@ func sortSpec(x ast.Spec) {
 
 func sortIdentifier(x *ast.Ident) {
 	// TODO: (kevinb) should .Object be sorted?
-	return
 }
 
 func sortIdentifierList(x []*ast.Ident) {
