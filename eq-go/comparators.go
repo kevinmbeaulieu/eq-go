@@ -67,11 +67,11 @@ func compareImportSpecs(a *ast.ImportSpec, b *ast.ImportSpec) (int, string) {
 	}
 
 	if cmp, msg := compareIdentifiers(a.Name, b.Name); cmp != 0 {
-		return cmp, fmt.Sprintf("import names do not match: %s", msg)
+		return cmp, fmt.Sprintf("import names did not match: %s", msg)
 	}
 
 	if cmp, msg := compareBasicLiteratures(a.Path, b.Path); cmp != 0 {
-		return cmp, fmt.Sprintf("import paths do not match: %s", msg)
+		return cmp, fmt.Sprintf("import paths did not match: %s", msg)
 	}
 
 	return 0, ""
@@ -269,14 +269,20 @@ func compareTypeSpecs(a *ast.TypeSpec, b *ast.TypeSpec) (int, string) {
 func compareSpecs(a ast.Spec, b ast.Spec) (int, string) {
 	if importSpecA, ok := a.(*ast.ImportSpec); ok {
 		if importSpecB, ok := b.(*ast.ImportSpec); ok {
-			return compareImportSpecs(importSpecA, importSpecB)
+			if cmp, msg := compareImportSpecs(importSpecA, importSpecB); cmp != 0 {
+				return cmp, "import specs did not match: " + msg
+			}
+			return 0, ""
 		}
 		return -1, "mismatched spec types"
 	}
 
 	if valueSpecA, ok := a.(*ast.ValueSpec); ok {
 		if valueSpecB, ok := b.(*ast.ValueSpec); ok {
-			return compareValueSpecs(valueSpecA, valueSpecB)
+			if cmp, msg := compareValueSpecs(valueSpecA, valueSpecB); cmp != 0 {
+				return cmp, "value specs did not match: " + msg
+			}
+			return 0, ""
 		}
 		if _, ok := b.(*ast.ImportSpec); ok {
 			return 1, "mismatched spec types"
@@ -286,7 +292,10 @@ func compareSpecs(a ast.Spec, b ast.Spec) (int, string) {
 
 	if typeSpecA, ok := a.(*ast.TypeSpec); ok {
 		if typeSpecB, ok := b.(*ast.TypeSpec); ok {
-			return compareTypeSpecs(typeSpecA, typeSpecB)
+			if cmp, msg := compareTypeSpecs(typeSpecA, typeSpecB); cmp != 0 {
+				return cmp, "type specs did not match: " + msg
+			}
+			return 0, ""
 		}
 		return 1, "mismatched spec types"
 	}
@@ -301,7 +310,7 @@ func compareSpecLists(a []ast.Spec, b []ast.Spec) (int, string) {
 
 	for i := range a {
 		if cmp, msg := compareSpecs(a[i], b[i]); cmp != 0 {
-			return cmp, msg
+			return cmp, fmt.Sprintf("specs at index %d did not match: %s", i, msg)
 		}
 	}
 
@@ -579,11 +588,11 @@ func compareFunctionTypes(a *ast.FuncType, b *ast.FuncType) (int, string) {
 	}
 
 	if cmp, msg := compareFieldLists(a.Params, b.Params); cmp != 0 {
-		return cmp, fmt.Sprintf("function type parameters do not match: %s", msg)
+		return cmp, fmt.Sprintf("function type parameters did not match: %s", msg)
 	}
 
 	if cmp, msg := compareFieldLists(a.Results, b.Results); cmp != 0 {
-		return cmp, fmt.Sprintf("function type results do not match: %s", msg)
+		return cmp, fmt.Sprintf("function type results did not match: %s", msg)
 	}
 
 	return 0, ""
@@ -595,12 +604,12 @@ func compareFieldLists(a *ast.FieldList, b *ast.FieldList) (int, string) {
 	}
 
 	if cmp, msg := compareInts(len(a.List), len(b.List)); cmp != 0 {
-		return cmp, fmt.Sprintf("length of field lists do not match: %s", msg)
+		return cmp, fmt.Sprintf("length of field lists did not match: %s", msg)
 	}
 
 	for i := range a.List {
 		if cmp, msg := compareFields(a.List[i], b.List[i]); cmp != 0 {
-			return cmp, fmt.Sprintf("fields at index %d do not match: %s", i, msg)
+			return cmp, fmt.Sprintf("fields at index %d did not match: %s", i, msg)
 		}
 	}
 
@@ -613,15 +622,15 @@ func compareFields(a *ast.Field, b *ast.Field) (int, string) {
 	}
 
 	if cmp, msg := compareIdentifierLists(a.Names, b.Names); cmp != 0 {
-		return cmp, fmt.Sprintf("field names do not match: %s", msg)
+		return cmp, fmt.Sprintf("field names did not match: %s", msg)
 	}
 
 	if cmp, msg := compareExpressions(a.Type, b.Type); cmp != 0 {
-		return cmp, fmt.Sprintf("field types do not match: %s", msg)
+		return cmp, fmt.Sprintf("field types did not match: %s", msg)
 	}
 
 	if cmp, msg := compareBasicLiteratures(a.Tag, b.Tag); cmp != 0 {
-		return cmp, fmt.Sprintf("field tags do not match: %s", msg)
+		return cmp, fmt.Sprintf("field tags did not match: %s", msg)
 	}
 
 	return 0, ""
@@ -714,14 +723,21 @@ func compareBadDecls(a *ast.BadDecl, b *ast.BadDecl) (int, string) {
 
 func compareGenDecls(a *ast.GenDecl, b *ast.GenDecl) (int, string) {
 	if a == nil || b == nil {
-		return compareBools(a == nil, b == nil)
+		if cmp, msg := compareBools(a == nil, b == nil); cmp != 0 {
+			return cmp, "generic declaration nil comparisons did not match: " + msg
+		}
+		return 0, ""
 	}
 
 	if cmp, msg := compareTokens(a.Tok, b.Tok); cmp != 0 {
-		return cmp, msg
+		return cmp, "generic declaration tokens did not match: " + msg
 	}
 
-	return compareSpecLists(a.Specs, b.Specs)
+	if cmp, msg := compareSpecLists(a.Specs, b.Specs); cmp != 0 {
+		return cmp, "generic declaration spec lists did not match: " + msg
+	}
+
+	return 0, ""
 }
 
 func compareFuncDecls(a *ast.FuncDecl, b *ast.FuncDecl) (int, string) {
@@ -730,11 +746,11 @@ func compareFuncDecls(a *ast.FuncDecl, b *ast.FuncDecl) (int, string) {
 	}
 
 	if cmp, msg := compareIdentifiers(a.Name, b.Name); cmp != 0 {
-		return cmp, fmt.Sprintf("function names do not match: %s", msg)
+		return cmp, fmt.Sprintf("function names did not match: %s", msg)
 	}
 
 	if cmp, msg := compareFieldLists(a.Recv, b.Recv); cmp != 0 {
-		return cmp, fmt.Sprintf("function receivers do not match: %s", msg)
+		return cmp, fmt.Sprintf("function receivers did not match: %s", msg)
 	}
 
 	if cmp, msg := compareFunctionTypes(a.Type, b.Type); cmp != 0 {
@@ -742,7 +758,7 @@ func compareFuncDecls(a *ast.FuncDecl, b *ast.FuncDecl) (int, string) {
 	}
 
 	if cmp, msg := compareBlockStatements(a.Body, b.Body); cmp != 0 {
-		return cmp, fmt.Sprintf("function bodies do not match: %s", msg)
+		return cmp, fmt.Sprintf("function bodies did not match: %s", msg)
 	}
 
 	return 0, ""
@@ -1001,7 +1017,7 @@ func compareGenDeclLists(a []*ast.GenDecl, b []*ast.GenDecl) (int, string) {
 
 	for i := range a {
 		if cmp, msg := compareGenDecls(a[i], b[i]); cmp != 0 {
-			return cmp, msg
+			return cmp, "generic declarations did not match: " + msg
 		}
 	}
 
@@ -1010,12 +1026,12 @@ func compareGenDeclLists(a []*ast.GenDecl, b []*ast.GenDecl) (int, string) {
 
 func compareFuncDeclLists(a []*ast.FuncDecl, b []*ast.FuncDecl) (int, string) {
 	if cmp, msg := compareInts(len(a), len(b)); cmp != 0 {
-		return cmp, fmt.Sprintf("length of function declaration lists do not match: %s", msg)
+		return cmp, fmt.Sprintf("length of function declaration lists did not match: %s", msg)
 	}
 
 	for i := range a {
 		if cmp, msg := compareFuncDecls(a[i], b[i]); cmp != 0 {
-			return cmp, fmt.Sprintf("function declarations at index %d do not match: %s", i, msg)
+			return cmp, fmt.Sprintf("function declarations at index %d did not match: %s", i, msg)
 		}
 	}
 
@@ -1024,12 +1040,12 @@ func compareFuncDeclLists(a []*ast.FuncDecl, b []*ast.FuncDecl) (int, string) {
 
 func compareImportSpecLists(a []*ast.ImportSpec, b []*ast.ImportSpec) (int, string) {
 	if cmp, msg := compareInts(len(a), len(b)); cmp != 0 {
-		return cmp, fmt.Sprintf("length of import lists do not match: %s", msg)
+		return cmp, fmt.Sprintf("length of import lists did not match: %s", msg)
 	}
 
 	for i := range a {
 		if cmp, msg := compareImportSpecs(a[i], b[i]); cmp != 0 {
-			return cmp, fmt.Sprintf("imports at index %d do not match: %s", i, msg)
+			return cmp, fmt.Sprintf("imports at index %d did not match: %s", i, msg)
 		}
 	}
 

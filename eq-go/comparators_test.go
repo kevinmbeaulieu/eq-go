@@ -219,7 +219,7 @@ func TestCompareImportSpecs(t *testing.T) {
 				Name: &ast.Ident{Name: "b"},
 			},
 			want:    -1,
-			wantMsg: "import names do not match: a < b",
+			wantMsg: "import names did not match: a < b",
 		},
 		{
 			a: &ast.ImportSpec{
@@ -229,7 +229,7 @@ func TestCompareImportSpecs(t *testing.T) {
 				Name: &ast.Ident{Name: "a"},
 			},
 			want:    1,
-			wantMsg: "import names do not match: b > a",
+			wantMsg: "import names did not match: b > a",
 		},
 		{
 			a: &ast.ImportSpec{
@@ -241,7 +241,7 @@ func TestCompareImportSpecs(t *testing.T) {
 				Path: &ast.BasicLit{Kind: token.FLOAT},
 			},
 			want:    -1,
-			wantMsg: "import paths do not match: 5 < 6",
+			wantMsg: "import paths did not match: 5 < 6",
 		},
 		{
 			a: &ast.ImportSpec{
@@ -253,7 +253,7 @@ func TestCompareImportSpecs(t *testing.T) {
 				Path: &ast.BasicLit{Kind: token.INT},
 			},
 			want:    1,
-			wantMsg: "import paths do not match: 6 > 5",
+			wantMsg: "import paths did not match: 6 > 5",
 		},
 		{
 			a: &ast.ImportSpec{
@@ -795,7 +795,7 @@ func TestCompareExpressions(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a:    &ast.CompositeLit{},
@@ -1021,7 +1021,7 @@ func TestCompareExpressions(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a:    &ast.InterfaceType{},
@@ -1246,7 +1246,7 @@ func TestCompareSpecs(t *testing.T) {
 				Name: ast.NewIdent("b"),
 			},
 			want:    -1,
-			wantMsg: "import names do not match: a < b",
+			wantMsg: "import specs did not match: import names did not match: a < b",
 		},
 		{
 			a:    &ast.ValueSpec{},
@@ -1265,7 +1265,7 @@ func TestCompareSpecs(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "a < b",
+			wantMsg: "value specs did not match: a < b",
 		},
 		{
 			a:    &ast.TypeSpec{},
@@ -1280,7 +1280,7 @@ func TestCompareSpecs(t *testing.T) {
 				Name: ast.NewIdent("b"),
 			},
 			want:    -1,
-			wantMsg: "a < b",
+			wantMsg: "type specs did not match: a < b",
 		},
 	}
 	for _, c := range testCases {
@@ -1330,7 +1330,7 @@ func TestCompareSpecLists(t *testing.T) {
 				&ast.ValueSpec{},
 			},
 			want:    -1,
-			wantMsg: "mismatched spec types",
+			wantMsg: "specs at index 0 did not match: mismatched spec types",
 		},
 		{
 			a: []ast.Spec{
@@ -1470,7 +1470,7 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a: &ast.FuncLit{
@@ -1500,7 +1500,7 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: b > a",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: b > a",
 		},
 		{
 			a: &ast.FuncLit{
@@ -3485,7 +3485,7 @@ func TestCompareStructTypes(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a: &ast.StructType{
@@ -3513,7 +3513,7 @@ func TestCompareStructTypes(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "fields at index 0 do not match: field names do not match: b > a",
+			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
 		},
 		{
 			a: &ast.StructType{
@@ -3602,7 +3602,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a: &ast.FuncType{
@@ -3628,7 +3628,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "function type parameters do not match: fields at index 0 do not match: field names do not match: b > a",
+			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: b > a",
 		},
 		{
 			a: &ast.FuncType{
@@ -3672,7 +3672,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function type results do not match: fields at index 0 do not match: field names do not match: x < y",
+			wantMsg: "function type results did not match: fields at index 0 did not match: field names did not match: x < y",
 		},
 		{
 			a: &ast.FuncType{
@@ -3716,7 +3716,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "function type results do not match: fields at index 0 do not match: field names do not match: y > x",
+			wantMsg: "function type results did not match: fields at index 0 did not match: field names did not match: y > x",
 		},
 		{
 			a: &ast.FuncType{
@@ -3810,7 +3810,7 @@ func TestCompareFieldLists(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "length of field lists do not match: 1 < 2",
+			wantMsg: "length of field lists did not match: 1 < 2",
 		},
 		{
 			a: &ast.FieldList{
@@ -3825,7 +3825,7 @@ func TestCompareFieldLists(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "length of field lists do not match: 2 > 1",
+			wantMsg: "length of field lists did not match: 2 > 1",
 		},
 		{
 			a: &ast.FieldList{
@@ -3847,7 +3847,7 @@ func TestCompareFieldLists(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a: &ast.FieldList{
@@ -3869,7 +3869,7 @@ func TestCompareFieldLists(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "fields at index 0 do not match: field names do not match: b > a",
+			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
 		},
 		{
 			a: &ast.FieldList{
@@ -3939,7 +3939,7 @@ func TestCompareFields(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "field names do not match: a < b",
+			wantMsg: "field names did not match: a < b",
 		},
 		{
 			a: &ast.Field{
@@ -3953,7 +3953,7 @@ func TestCompareFields(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "field names do not match: b > a",
+			wantMsg: "field names did not match: b > a",
 		},
 		{
 			a: &ast.Field{
@@ -3969,7 +3969,7 @@ func TestCompareFields(t *testing.T) {
 				Type: ast.NewIdent("y"),
 			},
 			want:    -1,
-			wantMsg: "field types do not match: x < y",
+			wantMsg: "field types did not match: x < y",
 		},
 		{
 			a: &ast.Field{
@@ -3985,7 +3985,7 @@ func TestCompareFields(t *testing.T) {
 				Type: ast.NewIdent("x"),
 			},
 			want:    1,
-			wantMsg: "field types do not match: y > x",
+			wantMsg: "field types did not match: y > x",
 		},
 		{
 			a: &ast.Field{
@@ -4007,7 +4007,7 @@ func TestCompareFields(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "field tags do not match: 5 < 6",
+			wantMsg: "field tags did not match: 5 < 6",
 		},
 		{
 			a: &ast.Field{
@@ -4029,7 +4029,7 @@ func TestCompareFields(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "field tags do not match: 6 > 5",
+			wantMsg: "field tags did not match: 6 > 5",
 		},
 		{
 			a: &ast.Field{
@@ -4112,7 +4112,7 @@ func TestCompareInterfaceTypes(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "fields at index 0 do not match: field names do not match: a < b",
+			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4138,7 +4138,7 @@ func TestCompareInterfaceTypes(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "fields at index 0 do not match: field names do not match: b > a",
+			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4535,7 +4535,7 @@ func TestCompareDeclStatements(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function names do not match: a < b",
+			wantMsg: "function names did not match: a < b",
 		},
 		{
 			a: &ast.DeclStmt{
@@ -4549,7 +4549,7 @@ func TestCompareDeclStatements(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "function names do not match: b > a",
+			wantMsg: "function names did not match: b > a",
 		},
 		{
 			a: &ast.DeclStmt{
@@ -4637,7 +4637,7 @@ func TestCompareDecls(t *testing.T) {
 				Tok: token.FLOAT,
 			},
 			want:    -1,
-			wantMsg: "5 < 6",
+			wantMsg: "generic declaration tokens did not match: 5 < 6",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4647,7 +4647,7 @@ func TestCompareDecls(t *testing.T) {
 				Tok: token.INT,
 			},
 			want:    1,
-			wantMsg: "6 > 5",
+			wantMsg: "generic declaration tokens did not match: 6 > 5",
 		},
 		{
 			a:    &ast.GenDecl{},
@@ -4662,7 +4662,7 @@ func TestCompareDecls(t *testing.T) {
 				Name: ast.NewIdent("b"),
 			},
 			want:    -1,
-			wantMsg: "function names do not match: a < b",
+			wantMsg: "function names did not match: a < b",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4672,7 +4672,7 @@ func TestCompareDecls(t *testing.T) {
 				Name: ast.NewIdent("a"),
 			},
 			want:    1,
-			wantMsg: "function names do not match: b > a",
+			wantMsg: "function names did not match: b > a",
 		},
 		{
 			a:    &ast.FuncDecl{},
@@ -4748,13 +4748,13 @@ func TestCompareGenDecls(t *testing.T) {
 			a:       nil,
 			b:       &ast.GenDecl{},
 			want:    1,
-			wantMsg: "true > false",
+			wantMsg: "generic declaration nil comparisons did not match: true > false",
 		},
 		{
 			a:       &ast.GenDecl{},
 			b:       nil,
 			want:    -1,
-			wantMsg: "false < true",
+			wantMsg: "generic declaration nil comparisons did not match: false < true",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4764,7 +4764,7 @@ func TestCompareGenDecls(t *testing.T) {
 				Tok: token.FLOAT,
 			},
 			want:    -1,
-			wantMsg: "5 < 6",
+			wantMsg: "generic declaration tokens did not match: 5 < 6",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4774,7 +4774,7 @@ func TestCompareGenDecls(t *testing.T) {
 				Tok: token.INT,
 			},
 			want:    1,
-			wantMsg: "6 > 5",
+			wantMsg: "generic declaration tokens did not match: 6 > 5",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4791,7 +4791,7 @@ func TestCompareGenDecls(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "1 < 2",
+			wantMsg: "generic declaration spec lists did not match: 1 < 2",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4808,7 +4808,7 @@ func TestCompareGenDecls(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "2 > 1",
+			wantMsg: "generic declaration spec lists did not match: 2 > 1",
 		},
 		{
 			a: &ast.GenDecl{
@@ -4869,7 +4869,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Name: ast.NewIdent("b"),
 			},
 			want:    -1,
-			wantMsg: "function names do not match: a < b",
+			wantMsg: "function names did not match: a < b",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4879,7 +4879,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Name: ast.NewIdent("a"),
 			},
 			want:    1,
-			wantMsg: "function names do not match: b > a",
+			wantMsg: "function names did not match: b > a",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4891,7 +4891,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Recv: nil,
 			},
 			want:    -1,
-			wantMsg: "function receivers do not match: false < true",
+			wantMsg: "function receivers did not match: false < true",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4903,7 +4903,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Recv: &ast.FieldList{},
 			},
 			want:    1,
-			wantMsg: "function receivers do not match: true > false",
+			wantMsg: "function receivers did not match: true > false",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4947,7 +4947,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Body: nil,
 			},
 			want:    -1,
-			wantMsg: "function bodies do not match: false < true",
+			wantMsg: "function bodies did not match: false < true",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4963,7 +4963,7 @@ func TestCompareFuncDecls(t *testing.T) {
 				Body: &ast.BlockStmt{},
 			},
 			want:    1,
-			wantMsg: "function bodies do not match: true > false",
+			wantMsg: "function bodies did not match: true > false",
 		},
 		{
 			a: &ast.FuncDecl{
@@ -7531,7 +7531,7 @@ func TestCompareGenDeclLists(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "5 < 6",
+			wantMsg: "generic declarations did not match: generic declaration tokens did not match: 5 < 6",
 		},
 		{
 			a: []*ast.GenDecl{
@@ -7551,7 +7551,7 @@ func TestCompareGenDeclLists(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "6 > 5",
+			wantMsg: "generic declarations did not match: generic declaration tokens did not match: 6 > 5",
 		},
 		{
 			a: []*ast.GenDecl{
@@ -7602,7 +7602,7 @@ func TestCompareFuncDeclLists(t *testing.T) {
 				{},
 			},
 			want:    -1,
-			wantMsg: "length of function declaration lists do not match: 0 < 1",
+			wantMsg: "length of function declaration lists did not match: 0 < 1",
 		},
 		{
 			a: []*ast.FuncDecl{
@@ -7610,7 +7610,7 @@ func TestCompareFuncDeclLists(t *testing.T) {
 			},
 			b:       []*ast.FuncDecl{},
 			want:    1,
-			wantMsg: "length of function declaration lists do not match: 1 > 0",
+			wantMsg: "length of function declaration lists did not match: 1 > 0",
 		},
 		{
 			a: []*ast.FuncDecl{
@@ -7630,7 +7630,7 @@ func TestCompareFuncDeclLists(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "function declarations at index 0 do not match: function names do not match: a < b",
+			wantMsg: "function declarations at index 0 did not match: function names did not match: a < b",
 		},
 		{
 			a: []*ast.FuncDecl{
@@ -7650,7 +7650,7 @@ func TestCompareFuncDeclLists(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "function declarations at index 0 do not match: function names do not match: b > a",
+			wantMsg: "function declarations at index 0 did not match: function names did not match: b > a",
 		},
 		{
 			a: []*ast.FuncDecl{
@@ -7701,7 +7701,7 @@ func TestCompareImportSpecLists(t *testing.T) {
 				{},
 			},
 			want:    -1,
-			wantMsg: "length of import lists do not match: 0 < 1",
+			wantMsg: "length of import lists did not match: 0 < 1",
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7709,7 +7709,7 @@ func TestCompareImportSpecLists(t *testing.T) {
 			},
 			b:       []*ast.ImportSpec{},
 			want:    1,
-			wantMsg: "length of import lists do not match: 1 > 0",
+			wantMsg: "length of import lists did not match: 1 > 0",
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7729,7 +7729,7 @@ func TestCompareImportSpecLists(t *testing.T) {
 				},
 			},
 			want:    -1,
-			wantMsg: "imports at index 0 do not match: import names do not match: a < b",
+			wantMsg: "imports at index 0 did not match: import names did not match: a < b",
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7749,7 +7749,7 @@ func TestCompareImportSpecLists(t *testing.T) {
 				},
 			},
 			want:    1,
-			wantMsg: "imports at index 0 do not match: import names do not match: b > a",
+			wantMsg: "imports at index 0 did not match: import names did not match: b > a",
 		},
 		{
 			a: []*ast.ImportSpec{

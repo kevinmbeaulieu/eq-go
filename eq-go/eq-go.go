@@ -82,15 +82,15 @@ func PackagesEquivalent(a *ast.Package, b *ast.Package) (bool, string) {
 // )
 func FilesEquivalent(a *ast.File, b *ast.File) (bool, string) {
 	if eq, msg := declListsEquivalent(a.Decls, b.Decls); !eq {
-		return eq, msg
+		return eq, "files' declaration lists not equivalent: " + msg
 	}
 
 	if eq, msg := importsEquivalent(a.Imports, b.Imports); !eq {
-		return eq, msg
+		return eq, "files' imports not equivalent: " + msg
 	}
 
 	if eq, msg := unresolvedIdentifiersEquivalent(a.Unresolved, b.Unresolved); !eq {
-		return eq, msg
+		return eq, "files' unresolved identifiers not equivalent: " + msg
 	}
 
 	return true, ""
@@ -148,7 +148,11 @@ func merge(files []*ast.File) *ast.File {
 func fileListsEquivalent(a []*ast.File, b []*ast.File) (bool, string) {
 	mergedFileA := merge(a)
 	mergedFileB := merge(b)
-	return FilesEquivalent(mergedFileA, mergedFileB)
+
+	if eq, msg := FilesEquivalent(mergedFileA, mergedFileB); !eq {
+		return eq, "file lists not equivalent: " + msg
+	}
+	return true, ""
 }
 
 func declListsEquivalent(a []ast.Decl, b []ast.Decl) (bool, string) {
@@ -160,15 +164,15 @@ func declListsEquivalent(a []ast.Decl, b []ast.Decl) (bool, string) {
 	badDeclsB, genDeclsB, funcDeclsB := splitDecls(b)
 
 	if eq, msg := badDeclListsEquivalent(badDeclsA, badDeclsB); !eq {
-		return eq, msg
+		return eq, "list of bad declarations did not match: " + msg
 	}
 
 	if eq, msg := genDeclListsEquivalent(genDeclsA, genDeclsB); !eq {
-		return eq, msg
+		return eq, "list of generic declarations did not match: " + msg
 	}
 
 	if eq, msg := funcDeclListsEquivalent(funcDeclsA, funcDeclsB); !eq {
-		return eq, msg
+		return eq, "list of function declarations did not match: " + msg
 	}
 
 	return true, ""
@@ -221,7 +225,7 @@ func genDeclListsEquivalent(a []*ast.GenDecl, b []*ast.GenDecl) (bool, string) {
 	sortGenDeclList(b)
 
 	if cmp, msg := compareGenDeclLists(a, b); cmp != 0 {
-		return false, fmt.Sprintf("generic declarations do not match: %s", msg)
+		return false, "generic declaration lists did not match: " + msg
 	}
 
 	return true, ""
@@ -236,7 +240,7 @@ func funcDeclListsEquivalent(a []*ast.FuncDecl, b []*ast.FuncDecl) (bool, string
 	sortFuncDeclList(b)
 
 	if cmp, msg := compareFuncDeclLists(a, b); cmp != 0 {
-		return false, fmt.Sprintf("function declarations do not match:\n%s", msg)
+		return false, "function declaration lists did not match: " + msg
 	}
 
 	return true, ""
@@ -251,7 +255,7 @@ func unresolvedIdentifiersEquivalent(a []*ast.Ident, b []*ast.Ident) (bool, stri
 	sortIdentifierList(b)
 
 	if cmp, msg := compareIdentifierLists(a, b); cmp != 0 {
-		return false, fmt.Sprintf("unresolved identifier lists did not match: %s", msg)
+		return false, "unresolved identifier lists did not match: " + msg
 	}
 
 	return true, ""
@@ -266,7 +270,7 @@ func importsEquivalent(a []*ast.ImportSpec, b []*ast.ImportSpec) (bool, string) 
 	sortImportList(b)
 
 	if cmp, msg := compareImportSpecLists(a, b); cmp != 0 {
-		return false, fmt.Sprintf("imports do not match: %s", msg)
+		return false, "import lists did not match: " + msg
 	}
 
 	return true, ""

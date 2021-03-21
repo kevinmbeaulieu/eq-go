@@ -28,10 +28,6 @@ func sortGenDecl(x *ast.GenDecl) {
 }
 
 func sortFuncDeclList(x []*ast.FuncDecl) {
-	for i := range x {
-		sortFuncDecl(x[i])
-	}
-
 	sort.Slice(x, func(i, j int) bool {
 		if cmp, _ := compareIdentifiers(x[i].Name, x[j].Name); cmp != 0 {
 			return cmp < 0
@@ -47,10 +43,6 @@ func sortFuncDeclList(x []*ast.FuncDecl) {
 		}
 		return true
 	})
-}
-
-func sortFuncDecl(x *ast.FuncDecl) {
-	// no-op
 }
 
 func sortSpecList(x []ast.Spec) {
