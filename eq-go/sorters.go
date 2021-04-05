@@ -8,78 +8,150 @@ import (
 // Helpers to sort language entities in a stable way so that collections can be compared without
 // regard for their original order.
 
-func sortGenDeclList(x []*ast.GenDecl) {
-	for i := range x {
-		sortGenDecl(x[i])
+func sortGenDeclList(x *[]*ast.GenDecl) {
+	for i := range *x {
+		sortGenDecl((*x)[i])
 	}
 
-	sort.Slice(x, func(i, j int) bool {
-		if cmp, _ := compareTokens(x[i].Tok, x[j].Tok); cmp != 0 {
-			return cmp < 0
-		}
-
-		cmp, _ := compareSpecLists(x[i].Specs, x[j].Specs)
+	sort.SliceStable(*x, func(i, j int) bool {
+		cmp, _ := compareGenDecls((*x)[i], (*x)[j])
 		return cmp <= 0
 	})
+
+	// Remove import specs
+	y := (*x)[:0]
+	for _, d := range *x {
+		newSpecs := d.Specs[:0]
+		for _, s := range d.Specs {
+			if _, ok := s.(*ast.ImportSpec); ok {
+				continue
+			}
+
+			newSpecs = append(newSpecs, s)
+		}
+
+		// Omit any declarations that are empty after import specs have been removed.
+		if len(newSpecs) > 0 {
+			d.Specs = newSpecs
+			y = append(y, d)
+		}
+	}
+	*x = y
+
+	// Remove duplicate values
+	y = (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareGenDecls(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
 func sortGenDecl(x *ast.GenDecl) {
-	sortSpecList(x.Specs)
+	sortSpecList(&x.Specs)
 }
 
-func sortFuncDeclList(x []*ast.FuncDecl) {
-	sort.Slice(x, func(i, j int) bool {
-		if cmp, _ := compareIdentifiers(x[i].Name, x[j].Name); cmp != 0 {
+func sortFuncDeclList(x *[]*ast.FuncDecl) {
+	sort.SliceStable(*x, func(i, j int) bool {
+		if cmp, _ := compareIdentifiers((*x)[i].Name, (*x)[j].Name); cmp != 0 {
 			return cmp < 0
 		}
-		if cmp, _ := compareFunctionTypes(x[i].Type, x[j].Type); cmp != 0 {
+		if cmp, _ := compareFunctionTypes((*x)[i].Type, (*x)[j].Type); cmp != 0 {
 			return cmp < 0
 		}
-		if cmp, _ := compareFieldLists(x[i].Recv, x[j].Recv); cmp != 0 {
+		if cmp, _ := compareFieldLists((*x)[i].Recv, (*x)[j].Recv); cmp != 0 {
 			return cmp < 0
 		}
-		if cmp, _ := compareBlockStatements(x[i].Body, x[j].Body); cmp != 0 {
+		if cmp, _ := compareBlockStatements((*x)[i].Body, (*x)[j].Body); cmp != 0 {
 			return cmp < 0
 		}
 		return true
 	})
+
+	// Remove duplicate values
+	y := (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareFuncDecls(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
-func sortSpecList(x []ast.Spec) {
-	for i := range x {
-		sortSpec(x[i])
+func sortSpecList(x *[]ast.Spec) {
+	for i := range *x {
+		sortSpec((*x)[i])
 	}
 
-	sort.Slice(x, func(i, j int) bool {
-		if importA, ok := x[i].(*ast.ImportSpec); ok {
-			importB := x[j].(*ast.ImportSpec)
+	sort.SliceStable(*x, func(i, j int) bool {
+		if importA, ok := (*x)[i].(*ast.ImportSpec); ok {
+			importB := (*x)[j].(*ast.ImportSpec)
 			cmp, _ := compareImportSpecs(importA, importB)
 			return cmp <= 0
 		}
 
-		if valA, ok := x[i].(*ast.ValueSpec); ok {
-			valB := x[j].(*ast.ValueSpec)
+		if valA, ok := (*x)[i].(*ast.ValueSpec); ok {
+			valB := (*x)[j].(*ast.ValueSpec)
 			cmp, _ := compareValueSpecs(valA, valB)
 			return cmp <= 0
 		}
 
-		typeA := x[i].(*ast.TypeSpec)
-		typeB := x[j].(*ast.TypeSpec)
+		typeA := (*x)[i].(*ast.TypeSpec)
+		typeB := (*x)[j].(*ast.TypeSpec)
 		cmp, _ := compareTypeSpecs(typeA, typeB)
 		return cmp <= 0
 	})
+
+	// Remove duplicate values
+	y := (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareSpecs(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
-func sortImportList(x []*ast.ImportSpec) {
-	sort.Slice(x, func(i, j int) bool {
-		if cmp, _ := compareIdentifiers(x[i].Name, x[j].Name); cmp != 0 {
+func sortImportList(x *[]*ast.ImportSpec) {
+	sort.SliceStable(*x, func(i, j int) bool {
+		if cmp, _ := compareIdentifiers((*x)[i].Name, (*x)[j].Name); cmp != 0 {
 			return cmp < 0
 		}
-		if cmp, _ := compareBasicLiteratures(x[i].Path, x[j].Path); cmp != 0 {
+		if cmp, _ := compareBasicLiterals((*x)[i].Path, (*x)[j].Path); cmp != 0 {
 			return cmp < 0
 		}
 		return true
 	})
+
+	// Remove duplicate values
+	y := (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareImportSpecs(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
 func sortSpec(x ast.Spec) {
@@ -89,9 +161,9 @@ func sortSpec(x ast.Spec) {
 	}
 
 	if valSpec, ok := x.(*ast.ValueSpec); ok {
-		sortIdentifierList(valSpec.Names)
+		sortIdentifierList(&valSpec.Names, false)
 		sortExpression(valSpec.Type)
-		sortExpressionList(valSpec.Values)
+		sortExpressionList(&valSpec.Values)
 		return
 	}
 
@@ -106,26 +178,56 @@ func sortIdentifier(x *ast.Ident) {
 	// TODO: (kevinb) should .Object be sorted?
 }
 
-func sortIdentifierList(x []*ast.Ident) {
-	for i := range x {
-		sortIdentifier(x[i])
+func sortIdentifierList(x *[]*ast.Ident, removeDuplicates bool) {
+	if removeDuplicates {
+		for i := range *x {
+			sortIdentifier((*x)[i])
+		}
 	}
 
-	sort.Slice(x, func(i, j int) bool {
-		cmp, _ := compareIdentifiers(x[i], x[j])
+	sort.SliceStable(*x, func(i, j int) bool {
+		cmp, _ := compareIdentifiers((*x)[i], (*x)[j])
 		return cmp <= 0
 	})
+
+	// Remove duplicate values
+	y := (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareIdentifiers(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
-func sortExpressionList(x []ast.Expr) {
-	for i := range x {
-		sortExpression(x[i])
+func sortExpressionList(x *[]ast.Expr) {
+	for i := range *x {
+		sortExpression((*x)[i])
 	}
 
-	sort.Slice(x, func(i, j int) bool {
-		cmp, _ := compareExpressions(x[i], x[j])
+	sort.SliceStable(*x, func(i, j int) bool {
+		cmp, _ := compareExpressions((*x)[i], (*x)[j])
 		return cmp <= 0
 	})
+
+	// Remove duplicate values
+	y := (*x)[:0]
+	for i, v := range *x {
+		if i+1 >= len(*x) {
+			y = append(y, v)
+			continue
+		}
+
+		if cmp, _ := compareExpressions(v, (*x)[i+1]); cmp != 0 {
+			y = append(y, v)
+		}
+	}
+	*x = y
 }
 
 func sortExpression(x ast.Expr) {
@@ -148,7 +250,7 @@ func sortExpression(x ast.Expr) {
 	}
 	if compositeLit, ok := x.(*ast.CompositeLit); ok {
 		sortExpression(compositeLit.Type)
-		sortExpressionList(compositeLit.Elts)
+		sortExpressionList(&compositeLit.Elts)
 		return
 	}
 	if parenExpr, ok := x.(*ast.ParenExpr); ok {
@@ -179,7 +281,7 @@ func sortExpression(x ast.Expr) {
 	}
 	if callExpr, ok := x.(*ast.CallExpr); ok {
 		sortExpression(callExpr.Fun)
-		sortExpressionList(callExpr.Args)
+		sortExpressionList(&callExpr.Args)
 		return
 	}
 	if starExpr, ok := x.(*ast.StarExpr); ok {

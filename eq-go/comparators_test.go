@@ -3,27 +3,39 @@ package eqgo
 import (
 	"go/ast"
 	"go/token"
+	"reflect"
 	"testing"
 )
 
+func newTestNode(msg string, child *node) *node {
+	var children []*node
+	if child != nil {
+		children = append(children, child)
+	}
+	return &node{
+		msg:      msg,
+		children: children,
+	}
+}
+
 func TestCompareInts(t *testing.T) {
 	testCases := []struct {
-		a       int
-		b       int
-		want    int
-		wantMsg string
+		a        int
+		b        int
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       1,
-			b:       2,
-			want:    -1,
-			wantMsg: "1 < 2",
+			a:        1,
+			b:        2,
+			want:     -1,
+			wantNode: newTestNode("ints did not match: 1 < 2", nil),
 		},
 		{
-			a:       2,
-			b:       1,
-			want:    1,
-			wantMsg: "2 > 1",
+			a:        2,
+			b:        1,
+			want:     1,
+			wantNode: newTestNode("ints did not match: 2 > 1", nil),
 		},
 		{
 			a:    1,
@@ -32,16 +44,16 @@ func TestCompareInts(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareInts(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareInts(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
-				"compareInts(%d, %d) == (%d, %s), want (%d, %s)",
+				"compareInts(%d, %d) == (%d, %v), want (%d, %v)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -49,22 +61,22 @@ func TestCompareInts(t *testing.T) {
 
 func TestCompareBools(t *testing.T) {
 	testCases := []struct {
-		a       bool
-		b       bool
-		want    int
-		wantMsg string
+		a        bool
+		b        bool
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       false,
-			b:       true,
-			want:    -1,
-			wantMsg: "false < true",
+			a:        false,
+			b:        true,
+			want:     -1,
+			wantNode: newTestNode("bools did not match: false < true", nil),
 		},
 		{
-			a:       true,
-			b:       false,
-			want:    1,
-			wantMsg: "true > false",
+			a:        true,
+			b:        false,
+			want:     1,
+			wantNode: newTestNode("bools did not match: true > false", nil),
 		},
 		{
 			a:    false,
@@ -73,16 +85,16 @@ func TestCompareBools(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBools(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBools(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBools(%t, %t) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -90,22 +102,22 @@ func TestCompareBools(t *testing.T) {
 
 func TestCompareStrings(t *testing.T) {
 	testCases := []struct {
-		a       string
-		b       string
-		want    int
-		wantMsg string
+		a        string
+		b        string
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       "a",
-			b:       "b",
-			want:    -1,
-			wantMsg: "a < b",
+			a:        "a",
+			b:        "b",
+			want:     -1,
+			wantNode: newTestNode("strings did not match: a < b", nil),
 		},
 		{
-			a:       "b",
-			b:       "a",
-			want:    1,
-			wantMsg: "b > a",
+			a:        "b",
+			b:        "a",
+			want:     1,
+			wantNode: newTestNode("strings did not match: b > a", nil),
 		},
 		{
 			a:    "a",
@@ -114,16 +126,16 @@ func TestCompareStrings(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareStrings(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareStrings(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareStrings(%s, %s) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -131,10 +143,10 @@ func TestCompareStrings(t *testing.T) {
 
 func TestCompareIdentifiers(t *testing.T) {
 	testCases := []struct {
-		a       *ast.Ident
-		b       *ast.Ident
-		want    int
-		wantMsg string
+		a        *ast.Ident
+		b        *ast.Ident
+		want     int
+		wantNode *node
 	}{
 		{
 			a:    nil,
@@ -142,28 +154,46 @@ func TestCompareIdentifiers(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       nil,
-			b:       &ast.Ident{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.Ident{},
+			want: 1,
+			wantNode: newTestNode(
+				"identifiers did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.Ident{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.Ident{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"identifiers did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.Ident{Name: "a"},
-			b:       &ast.Ident{Name: "b"},
-			want:    -1,
-			wantMsg: "a < b",
+			a:    &ast.Ident{Name: "a"},
+			b:    &ast.Ident{Name: "b"},
+			want: -1,
+			wantNode: newTestNode(
+				"identifiers did not match",
+				newTestNode("strings did not match: a < b", nil),
+			),
 		},
 		{
-			a:       &ast.Ident{Name: "b"},
-			b:       &ast.Ident{Name: "a"},
-			want:    1,
-			wantMsg: "b > a",
+			a:    &ast.Ident{Name: "b"},
+			b:    &ast.Ident{Name: "a"},
+			want: 1,
+			wantNode: newTestNode(
+				"identifiers did not match",
+				newTestNode("strings did not match: b > a", nil),
+			),
 		},
 		{
 			a:    &ast.Ident{Name: "a"},
@@ -172,16 +202,16 @@ func TestCompareIdentifiers(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareIdentifiers(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareIdentifiers(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareIdentifiers(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -189,10 +219,10 @@ func TestCompareIdentifiers(t *testing.T) {
 
 func TestCompareImportSpecs(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ImportSpec
-		b       *ast.ImportSpec
-		want    int
-		wantMsg string
+		a        *ast.ImportSpec
+		b        *ast.ImportSpec
+		want     int
+		wantNode *node
 	}{
 		{
 			a:    nil,
@@ -200,16 +230,28 @@ func TestCompareImportSpecs(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       nil,
-			b:       &ast.ImportSpec{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ImportSpec{},
+			want: 1,
+			wantNode: newTestNode(
+				"import specs did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ImportSpec{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ImportSpec{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"import specs did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ImportSpec{
@@ -218,8 +260,17 @@ func TestCompareImportSpecs(t *testing.T) {
 			b: &ast.ImportSpec{
 				Name: &ast.Ident{Name: "b"},
 			},
-			want:    -1,
-			wantMsg: "import names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"import specs did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ImportSpec{
@@ -228,8 +279,17 @@ func TestCompareImportSpecs(t *testing.T) {
 			b: &ast.ImportSpec{
 				Name: &ast.Ident{Name: "a"},
 			},
-			want:    1,
-			wantMsg: "import names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"import specs did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ImportSpec{
@@ -240,8 +300,28 @@ func TestCompareImportSpecs(t *testing.T) {
 				Name: &ast.Ident{Name: "a"},
 				Path: &ast.BasicLit{Kind: token.FLOAT},
 			},
-			want:    -1,
-			wantMsg: "import paths did not match: 5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"import specs did not match",
+
+				newTestNode(
+					"paths did not match",
+
+					newTestNode(
+						"basic literals did not match",
+
+						newTestNode(
+							"kinds did not match",
+
+							newTestNode(
+								"tokens did not match",
+
+								newTestNode("ints did not match: 5 < 6", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ImportSpec{
@@ -252,8 +332,28 @@ func TestCompareImportSpecs(t *testing.T) {
 				Name: &ast.Ident{Name: "a"},
 				Path: &ast.BasicLit{Kind: token.INT},
 			},
-			want:    1,
-			wantMsg: "import paths did not match: 6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"import specs did not match",
+
+				newTestNode(
+					"paths did not match",
+
+					newTestNode(
+						"basic literals did not match",
+
+						newTestNode(
+							"kinds did not match",
+
+							newTestNode(
+								"tokens did not match",
+
+								newTestNode("ints did not match: 6 > 5", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ImportSpec{
@@ -268,27 +368,27 @@ func TestCompareImportSpecs(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareImportSpecs(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareImportSpecs(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareImportSpecs(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
 }
 
-func TestCompareBasicLiteratures(t *testing.T) {
+func TestCompareBasicLiterals(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BasicLit
-		b       *ast.BasicLit
-		want    int
-		wantMsg string
+		a        *ast.BasicLit
+		b        *ast.BasicLit
+		want     int
+		wantNode *node
 	}{
 		{
 			a:    nil,
@@ -296,53 +396,120 @@ func TestCompareBasicLiteratures(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       nil,
-			b:       &ast.BasicLit{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BasicLit{},
+			want: 1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"nil comparisons did not match",
+
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BasicLit{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BasicLit{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"nil comparisons did not match",
+
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BasicLit{Kind: token.INT},
-			b:       &ast.BasicLit{Kind: token.FLOAT},
-			want:    -1,
-			wantMsg: "5 < 6",
+			a:    &ast.BasicLit{Kind: token.INT},
+			b:    &ast.BasicLit{Kind: token.FLOAT},
+			want: -1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"kinds did not match",
+
+					newTestNode(
+						"tokens did not match",
+
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
-			a:       &ast.BasicLit{Kind: token.FLOAT},
-			b:       &ast.BasicLit{Kind: token.INT},
-			want:    1,
-			wantMsg: "6 > 5",
+			a:    &ast.BasicLit{Kind: token.FLOAT},
+			b:    &ast.BasicLit{Kind: token.INT},
+			want: 1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"kinds did not match",
+
+					newTestNode(
+						"tokens did not match",
+
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
-			a:       &ast.BasicLit{Value: "a"},
-			b:       &ast.BasicLit{Value: "b"},
-			want:    -1,
-			wantMsg: "a < b",
+			a:    &ast.BasicLit{Value: "a"},
+			b:    &ast.BasicLit{Value: "b"},
+			want: -1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"values did not match",
+
+					newTestNode("strings did not match: a < b", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BasicLit{Value: "b"},
-			b:       &ast.BasicLit{Value: "a"},
-			want:    1,
-			wantMsg: "b > a",
+			a:    &ast.BasicLit{Value: "b"},
+			b:    &ast.BasicLit{Value: "a"},
+			want: 1,
+			wantNode: newTestNode(
+				"basic literals did not match",
+
+				newTestNode(
+					"values did not match",
+
+					newTestNode("strings did not match: b > a", nil),
+				),
+			),
+		},
+		{
+			a: &ast.BasicLit{
+				Kind:  token.INT,
+				Value: "a",
+			},
+			b: &ast.BasicLit{
+				Kind:  token.INT,
+				Value: "a",
+			},
+			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBasicLiteratures(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBasicLiterals(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
-				"compareBasicLiteratures(%v, %v) == (%d, %s), want (%d, %s)",
+				"compareBasicLiterals(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -350,10 +517,10 @@ func TestCompareBasicLiteratures(t *testing.T) {
 
 func TestCompareValueSpecs(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ValueSpec
-		b       *ast.ValueSpec
-		want    int
-		wantMsg string
+		a        *ast.ValueSpec
+		b        *ast.ValueSpec
+		want     int
+		wantNode *node
 	}{
 		{
 			a:    nil,
@@ -361,16 +528,32 @@ func TestCompareValueSpecs(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       nil,
-			b:       &ast.ValueSpec{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ValueSpec{},
+			want: 1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"nil comparisons did not match",
+
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ValueSpec{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ValueSpec{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"nil comparisons did not match",
+
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -379,8 +562,28 @@ func TestCompareValueSpecs(t *testing.T) {
 			b: &ast.ValueSpec{
 				Names: []*ast.Ident{{Name: "b"}},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"name lists did not match",
+
+					newTestNode(
+						"identifier lists did not match",
+
+						newTestNode(
+							"identifiers at index 0 did not match",
+
+							newTestNode(
+								"identifiers did not match",
+
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -389,8 +592,28 @@ func TestCompareValueSpecs(t *testing.T) {
 			b: &ast.ValueSpec{
 				Names: []*ast.Ident{{Name: "a"}},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"name lists did not match",
+
+					newTestNode(
+						"identifier lists did not match",
+
+						newTestNode(
+							"identifiers at index 0 did not match",
+
+							newTestNode(
+								"identifiers did not match",
+
+								newTestNode("strings did not match: b > a", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -410,8 +633,24 @@ func TestCompareValueSpecs(t *testing.T) {
 				Names: []*ast.Ident{{Name: "a"}},
 				Type:  &ast.Ident{Name: "bType"},
 			},
-			want:    -1,
-			wantMsg: "aType < bType",
+			want: -1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"types did not match",
+
+					newTestNode(
+						"expressions did not match",
+
+						newTestNode(
+							"identifiers did not match",
+
+							newTestNode("strings did not match: aType < bType", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -422,8 +661,24 @@ func TestCompareValueSpecs(t *testing.T) {
 				Names: []*ast.Ident{{Name: "a"}},
 				Type:  &ast.Ident{Name: "aType"},
 			},
-			want:    1,
-			wantMsg: "bType > aType",
+			want: 1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"types did not match",
+
+					newTestNode(
+						"expressions did not match",
+
+						newTestNode(
+							"identifiers did not match",
+
+							newTestNode("strings did not match: bType > aType", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -455,8 +710,36 @@ func TestCompareValueSpecs(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"values did not match",
+
+					newTestNode(
+						"expression lists did not match",
+
+						newTestNode(
+							"expressions at index 0 did not match",
+
+							newTestNode(
+								"expressions did not match",
+
+								newTestNode(
+									"basic literals did not match",
+
+									newTestNode(
+										"values did not match",
+
+										newTestNode("strings did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -477,8 +760,36 @@ func TestCompareValueSpecs(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"value specs did not match",
+
+				newTestNode(
+					"values did not match",
+
+					newTestNode(
+						"expression lists did not match",
+
+						newTestNode(
+							"expressions at index 0 did not match",
+
+							newTestNode(
+								"expressions did not match",
+
+								newTestNode(
+									"basic literals did not match",
+
+									newTestNode(
+										"values did not match",
+
+										newTestNode("strings did not match: 6 > 5", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ValueSpec{
@@ -503,16 +814,16 @@ func TestCompareValueSpecs(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareValueSpecs(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareValueSpecs(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareValueSpecs(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -520,10 +831,10 @@ func TestCompareValueSpecs(t *testing.T) {
 
 func TestCompareIdentifierLists(t *testing.T) {
 	testCases := []struct {
-		a       []*ast.Ident
-		b       []*ast.Ident
-		want    int
-		wantMsg string
+		a        []*ast.Ident
+		b        []*ast.Ident
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []*ast.Ident{
@@ -533,8 +844,17 @@ func TestCompareIdentifierLists(t *testing.T) {
 				{},
 				{},
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"identifier lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode(
+						"ints did not match: 1 < 2",
+						nil,
+					),
+				),
+			),
 		},
 		{
 			a: []*ast.Ident{
@@ -544,8 +864,17 @@ func TestCompareIdentifierLists(t *testing.T) {
 			b: []*ast.Ident{
 				{},
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"identifier lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode(
+						"ints did not match: 2 > 1",
+						nil,
+					),
+				),
+			),
 		},
 		{
 			a: []*ast.Ident{
@@ -565,8 +894,17 @@ func TestCompareIdentifierLists(t *testing.T) {
 			b: []*ast.Ident{
 				{Name: "b"},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"identifier lists did not match",
+				newTestNode(
+					"identifiers at index 0 did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: []*ast.Ident{
@@ -575,8 +913,17 @@ func TestCompareIdentifierLists(t *testing.T) {
 			b: []*ast.Ident{
 				{Name: "a"},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"identifier lists did not match",
+				newTestNode(
+					"identifiers at index 0 did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: []*ast.Ident{
@@ -589,16 +936,16 @@ func TestCompareIdentifierLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareIdentifierLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareIdentifierLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareIdentifierLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -606,10 +953,10 @@ func TestCompareIdentifierLists(t *testing.T) {
 
 func TestCompareExpressionLists(t *testing.T) {
 	testCases := []struct {
-		a       []ast.Expr
-		b       []ast.Expr
-		want    int
-		wantMsg string
+		a        []ast.Expr
+		b        []ast.Expr
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []ast.Expr{
@@ -619,8 +966,14 @@ func TestCompareExpressionLists(t *testing.T) {
 				ast.NewIdent(""),
 				ast.NewIdent(""),
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"expression lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 < 2", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Expr{
@@ -630,8 +983,14 @@ func TestCompareExpressionLists(t *testing.T) {
 			b: []ast.Expr{
 				ast.NewIdent(""),
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"expression lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 2 > 1", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Expr{
@@ -642,8 +1001,20 @@ func TestCompareExpressionLists(t *testing.T) {
 				ast.NewIdent("a"),
 				ast.NewIdent("c"),
 			},
-			want:    -1,
-			wantMsg: "b < c",
+			want: -1,
+			wantNode: newTestNode(
+				"expression lists did not match",
+				newTestNode(
+					"expressions at index 1 did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b < c", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: []ast.Expr{
@@ -654,8 +1025,20 @@ func TestCompareExpressionLists(t *testing.T) {
 				ast.NewIdent("a"),
 				ast.NewIdent("b"),
 			},
-			want:    1,
-			wantMsg: "c > b",
+			want: 1,
+			wantNode: newTestNode(
+				"expression lists did not match",
+				newTestNode(
+					"expressions at index 1 did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: c > b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: []ast.Expr{
@@ -670,16 +1053,16 @@ func TestCompareExpressionLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareExpressionLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareExpressionLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareExpressionLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -687,22 +1070,40 @@ func TestCompareExpressionLists(t *testing.T) {
 
 func TestCompareExpressions(t *testing.T) {
 	testCases := []struct {
-		a       ast.Expr
-		b       ast.Expr
-		want    int
-		wantMsg string
+		a        ast.Expr
+		b        ast.Expr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       ast.NewIdent(""),
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    ast.NewIdent(""),
+			want: 1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode(
+						"bools did not match: true > false",
+						nil,
+					),
+				),
+			),
 		},
 		{
-			a:       ast.NewIdent(""),
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    ast.NewIdent(""),
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode(
+						"bools did not match: false < true",
+						nil,
+					),
+				),
+			),
 		},
 		{
 			a:    nil,
@@ -710,16 +1111,34 @@ func TestCompareExpressions(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       ast.NewIdent(""),
-			b:       &ast.Ellipsis{},
-			want:    -1,
-			wantMsg: "1 < 2",
+			a:    ast.NewIdent(""),
+			b:    &ast.Ellipsis{},
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"sort indices did not match",
+					newTestNode(
+						"ints did not match: 1 < 2",
+						nil,
+					),
+				),
+			),
 		},
 		{
-			a:       &ast.Ellipsis{},
-			b:       ast.NewIdent(""),
-			want:    1,
-			wantMsg: "2 > 1",
+			a:    &ast.Ellipsis{},
+			b:    ast.NewIdent(""),
+			want: 1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"sort indices did not match",
+					newTestNode(
+						"ints did not match: 2 > 1",
+						nil,
+					),
+				),
+			),
 		},
 		{
 			a:    ast.NewIdent(""),
@@ -727,10 +1146,19 @@ func TestCompareExpressions(t *testing.T) {
 			want: 0,
 		},
 		{
-			a:       ast.NewIdent("a"),
-			b:       ast.NewIdent("b"),
-			want:    -1,
-			wantMsg: "a < b",
+			a:    ast.NewIdent("a"),
+			b:    ast.NewIdent("b"),
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"identifiers did not match",
+					newTestNode(
+						"strings did not match: a < b",
+						nil,
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.Ellipsis{},
@@ -744,8 +1172,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.Ellipsis{
 				Elt: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"ellipses did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.BasicLit{},
@@ -759,8 +1202,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.BasicLit{
 				Kind: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"basic literals did not match",
+					newTestNode(
+						"kinds did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode(
+								"ints did not match: 5 < 6",
+								nil,
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.FuncLit{},
@@ -794,8 +1252,44 @@ func TestCompareExpressions(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"function literals did not match",
+					newTestNode(
+						"types did not match",
+						newTestNode(
+							"function types did not match",
+							newTestNode(
+								"parameter lists did not match",
+								newTestNode(
+									"field lists did not match",
+									newTestNode(
+										"fields at index 0 did not match",
+										newTestNode(
+											"fields did not match",
+											newTestNode(
+												"name lists did not match",
+												newTestNode(
+													"identifier lists did not match",
+													newTestNode(
+														"identifiers at index 0 did not match",
+														newTestNode(
+															"identifiers did not match",
+															newTestNode("strings did not match: a < b", nil),
+														),
+													),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.CompositeLit{},
@@ -809,8 +1303,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.CompositeLit{
 				Type: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"composite literals did not match",
+					newTestNode(
+						"types did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ParenExpr{},
@@ -824,8 +1333,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.ParenExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"parentheses did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.SelectorExpr{},
@@ -839,8 +1363,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.SelectorExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"selector expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.IndexExpr{},
@@ -854,8 +1393,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.IndexExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"index expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.SliceExpr{},
@@ -869,8 +1423,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.SliceExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"slices did not match",
+					newTestNode(
+						"X expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.TypeAssertExpr{},
@@ -884,8 +1453,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.TypeAssertExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"type assertions did not match",
+					newTestNode(
+						"X expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.CallExpr{},
@@ -899,8 +1483,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.CallExpr{
 				Fun: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"call expressions did not match",
+					newTestNode(
+						"functions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.StarExpr{},
@@ -914,8 +1513,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.StarExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"star expressions did not match",
+					newTestNode(
+						"X expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.UnaryExpr{},
@@ -929,8 +1543,20 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.UnaryExpr{
 				Op: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"unary expressions did not match",
+					newTestNode(
+						"operators did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode("ints did not match: 5 < 6", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.BinaryExpr{},
@@ -944,8 +1570,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.BinaryExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"binary expressions did not match",
+					newTestNode(
+						"X expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.KeyValueExpr{},
@@ -959,8 +1600,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.KeyValueExpr{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"key-value expressions did not match",
+					newTestNode(
+						"keys did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ArrayType{},
@@ -974,8 +1630,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.ArrayType{
 				Len: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"array types did not match",
+					newTestNode(
+						"length expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.StructType{},
@@ -989,8 +1660,17 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.StructType{
 				Incomplete: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"struct types did not match",
+					newTestNode(
+						"incomplete values did not match",
+						newTestNode("bools did not match: false < true", nil),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.FuncType{},
@@ -1020,8 +1700,38 @@ func TestCompareExpressions(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"function types did not match",
+					newTestNode(
+						"parameter lists did not match",
+						newTestNode(
+							"field lists did not match",
+							newTestNode(
+								"fields at index 0 did not match",
+								newTestNode(
+									"fields did not match",
+									newTestNode(
+										"name lists did not match",
+										newTestNode(
+											"identifier lists did not match",
+											newTestNode(
+												"identifiers at index 0 did not match",
+												newTestNode(
+													"identifiers did not match",
+													newTestNode("strings did not match: a < b", nil),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.InterfaceType{},
@@ -1035,8 +1745,17 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.InterfaceType{
 				Incomplete: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"interface types did not match",
+					newTestNode(
+						"incomplete values did not match",
+						newTestNode("bools did not match: false < true", nil),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.MapType{},
@@ -1050,8 +1769,23 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.MapType{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"map types did not match",
+					newTestNode(
+						"key expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ChanType{},
@@ -1065,21 +1799,33 @@ func TestCompareExpressions(t *testing.T) {
 			b: &ast.ChanType{
 				Dir: ast.RECV,
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"expressions did not match",
+				newTestNode(
+					"channel types did not match",
+					newTestNode(
+						"directions did not match",
+						newTestNode(
+							"channel directions did not match",
+							newTestNode("ints did not match: 1 < 2", nil),
+						),
+					),
+				),
+			),
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1087,22 +1833,34 @@ func TestCompareExpressions(t *testing.T) {
 
 func TestCompareTypeSpecs(t *testing.T) {
 	testCases := []struct {
-		a       *ast.TypeSpec
-		b       *ast.TypeSpec
-		want    int
-		wantMsg string
+		a        *ast.TypeSpec
+		b        *ast.TypeSpec
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.TypeSpec{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.TypeSpec{},
+			want: 1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.TypeSpec{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.TypeSpec{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a:    &ast.TypeSpec{},
@@ -1116,8 +1874,17 @@ func TestCompareTypeSpecs(t *testing.T) {
 			b: &ast.TypeSpec{
 				Name: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSpec{
@@ -1126,8 +1893,17 @@ func TestCompareTypeSpecs(t *testing.T) {
 			b: &ast.TypeSpec{
 				Name: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSpec{
@@ -1147,8 +1923,20 @@ func TestCompareTypeSpecs(t *testing.T) {
 				Name: ast.NewIdent("a"),
 				Type: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSpec{
@@ -1159,8 +1947,20 @@ func TestCompareTypeSpecs(t *testing.T) {
 				Name: ast.NewIdent("a"),
 				Type: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"type specs did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSpec{
@@ -1175,16 +1975,16 @@ func TestCompareTypeSpecs(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareTypeSpecs(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareTypeSpecs(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareTypeSpecs(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1192,46 +1992,46 @@ func TestCompareTypeSpecs(t *testing.T) {
 
 func TestCompareSpecs(t *testing.T) {
 	testCases := []struct {
-		a       ast.Spec
-		b       ast.Spec
-		want    int
-		wantMsg string
+		a        ast.Spec
+		b        ast.Spec
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       &ast.ImportSpec{},
-			b:       &ast.ValueSpec{},
-			want:    -1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.ImportSpec{},
+			b:        &ast.ValueSpec{},
+			want:     -1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
-			a:       &ast.ImportSpec{},
-			b:       &ast.TypeSpec{},
-			want:    -1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.ImportSpec{},
+			b:        &ast.TypeSpec{},
+			want:     -1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
-			a:       &ast.ValueSpec{},
-			b:       &ast.ImportSpec{},
-			want:    1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.ValueSpec{},
+			b:        &ast.ImportSpec{},
+			want:     1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
-			a:       &ast.TypeSpec{},
-			b:       &ast.ImportSpec{},
-			want:    1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.TypeSpec{},
+			b:        &ast.ImportSpec{},
+			want:     1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
-			a:       &ast.ValueSpec{},
-			b:       &ast.TypeSpec{},
-			want:    -1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.ValueSpec{},
+			b:        &ast.TypeSpec{},
+			want:     -1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
-			a:       &ast.TypeSpec{},
-			b:       &ast.ValueSpec{},
-			want:    1,
-			wantMsg: "mismatched spec types",
+			a:        &ast.TypeSpec{},
+			b:        &ast.ValueSpec{},
+			want:     1,
+			wantNode: newTestNode("spec types did not match", nil),
 		},
 		{
 			a:    &ast.ImportSpec{},
@@ -1245,8 +2045,20 @@ func TestCompareSpecs(t *testing.T) {
 			b: &ast.ImportSpec{
 				Name: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "import specs did not match: import names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"specs did not match",
+				newTestNode(
+					"import specs did not match",
+					newTestNode(
+						"names did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ValueSpec{},
@@ -1264,8 +2076,26 @@ func TestCompareSpecs(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "value specs did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"specs did not match",
+				newTestNode(
+					"value specs did not match",
+					newTestNode(
+						"name lists did not match",
+						newTestNode(
+							"identifier lists did not match",
+							newTestNode(
+								"identifiers at index 0 did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.TypeSpec{},
@@ -1279,21 +2109,33 @@ func TestCompareSpecs(t *testing.T) {
 			b: &ast.TypeSpec{
 				Name: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "type specs did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"specs did not match",
+				newTestNode(
+					"type specs did not match",
+					newTestNode(
+						"names did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSpecs(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSpecs(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSpecs(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1301,26 +2143,38 @@ func TestCompareSpecs(t *testing.T) {
 
 func TestCompareSpecLists(t *testing.T) {
 	testCases := []struct {
-		a       []ast.Spec
-		b       []ast.Spec
-		want    int
-		wantMsg string
+		a        []ast.Spec
+		b        []ast.Spec
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []ast.Spec{},
 			b: []ast.Spec{
 				&ast.ImportSpec{},
 			},
-			want:    -1,
-			wantMsg: "0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"spec lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 0 < 1", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Spec{
 				&ast.ImportSpec{},
 			},
-			b:       []ast.Spec{},
-			want:    1,
-			wantMsg: "1 > 0",
+			b:    []ast.Spec{},
+			want: 1,
+			wantNode: newTestNode(
+				"spec lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 > 0", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Spec{
@@ -1329,8 +2183,14 @@ func TestCompareSpecLists(t *testing.T) {
 			b: []ast.Spec{
 				&ast.ValueSpec{},
 			},
-			want:    -1,
-			wantMsg: "specs at index 0 did not match: mismatched spec types",
+			want: -1,
+			wantNode: newTestNode(
+				"spec lists did not match",
+				newTestNode(
+					"specs at index 0 did not match",
+					newTestNode("spec types did not match", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Spec{
@@ -1343,16 +2203,16 @@ func TestCompareSpecLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSpecLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSpecLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSpecLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1360,22 +2220,34 @@ func TestCompareSpecLists(t *testing.T) {
 
 func TestCompareEllipses(t *testing.T) {
 	testCases := []struct {
-		a       *ast.Ellipsis
-		b       *ast.Ellipsis
-		want    int
-		wantMsg string
+		a        *ast.Ellipsis
+		b        *ast.Ellipsis
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.Ellipsis{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.Ellipsis{},
+			want: 1,
+			wantNode: newTestNode(
+				"ellipses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.Ellipsis{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.Ellipsis{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"ellipses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.Ellipsis{
@@ -1384,8 +2256,20 @@ func TestCompareEllipses(t *testing.T) {
 			b: &ast.Ellipsis{
 				Elt: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"ellipses did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Ellipsis{
@@ -1394,8 +2278,20 @@ func TestCompareEllipses(t *testing.T) {
 			b: &ast.Ellipsis{
 				Elt: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"ellipses did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Ellipsis{
@@ -1408,39 +2304,51 @@ func TestCompareEllipses(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareEllipses(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareEllipses(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareEllipses(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
 }
 
-func TestCompareFunctionLiteratures(t *testing.T) {
+func TestCompareFunctionLiterals(t *testing.T) {
 	testCases := []struct {
-		a       *ast.FuncLit
-		b       *ast.FuncLit
-		want    int
-		wantMsg string
+		a        *ast.FuncLit
+		b        *ast.FuncLit
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.FuncLit{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.FuncLit{},
+			want: 1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.FuncLit{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.FuncLit{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.FuncLit{
@@ -1469,8 +2377,41 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"function types did not match",
+						newTestNode(
+							"parameter lists did not match",
+							newTestNode(
+								"field lists did not match",
+								newTestNode(
+									"fields at index 0 did not match",
+									newTestNode(
+										"fields did not match",
+										newTestNode(
+											"name lists did not match",
+											newTestNode(
+												"identifier lists did not match",
+												newTestNode(
+													"identifiers at index 0 did not match",
+													newTestNode(
+														"identifiers did not match",
+														newTestNode("strings did not match: a < b", nil),
+													),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncLit{
@@ -1499,8 +2440,41 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"function types did not match",
+						newTestNode(
+							"parameter lists did not match",
+							newTestNode(
+								"field lists did not match",
+								newTestNode(
+									"fields at index 0 did not match",
+									newTestNode(
+										"fields did not match",
+										newTestNode(
+											"name lists did not match",
+											newTestNode(
+												"identifier lists did not match",
+												newTestNode(
+													"identifiers at index 0 did not match",
+													newTestNode(
+														"identifiers did not match",
+														newTestNode("strings did not match: b > a", nil),
+													),
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncLit{
@@ -1515,9 +2489,13 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("x"),
+							},
 							Tok: token.INT,
 						},
 					},
@@ -1535,16 +2513,44 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("x"),
+							},
 							Tok: token.FLOAT,
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncLit{
@@ -1559,9 +2565,13 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("x"),
+							},
 							Tok: token.FLOAT,
 						},
 					},
@@ -1579,16 +2589,44 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("x"),
+							},
 							Tok: token.INT,
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"function literals did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncLit{
@@ -1603,10 +2641,14 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -1623,10 +2665,14 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 						},
 					},
 				},
+
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -1635,16 +2681,16 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFunctionLiteratures(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFunctionLiterals(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
-				"compareFunctionLiteratures(%v, %v) == (%d, %s), want (%d, %s)",
+				"compareFunctionLiterals(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1652,60 +2698,106 @@ func TestCompareFunctionLiteratures(t *testing.T) {
 
 func TestCompareBlockStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BlockStmt
-		b       *ast.BlockStmt
-		want    int
-		wantMsg string
+		a        *ast.BlockStmt
+		b        *ast.BlockStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.BlockStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BlockStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BlockStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BlockStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.AssignStmt{},
+					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
+					},
 				},
 			},
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.AssignStmt{},
+					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
+					},
 					&ast.BranchStmt{},
 				},
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 < 2", nil),
+				),
+			),
 		},
 		{
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.AssignStmt{},
+					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
+					},
 					&ast.BranchStmt{},
 				},
 			},
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.AssignStmt{},
+					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 2 > 1", nil),
+				),
+			),
 		},
 		{
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 				},
@@ -1713,23 +2805,53 @@ func TestCompareBlockStatements(t *testing.T) {
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.FLOAT,
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"statements at index 1 did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.FLOAT,
 					},
 				},
@@ -1737,23 +2859,53 @@ func TestCompareBlockStatements(t *testing.T) {
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"block statements did not match",
+				newTestNode(
+					"statements at index 1 did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 				},
@@ -1761,9 +2913,15 @@ func TestCompareBlockStatements(t *testing.T) {
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 				},
@@ -1772,16 +2930,16 @@ func TestCompareBlockStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBlockStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBlockStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBlockStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -1789,34 +2947,68 @@ func TestCompareBlockStatements(t *testing.T) {
 
 func TestCompareStatements(t *testing.T) {
 	testCases := []struct {
-		a       ast.Stmt
-		b       ast.Stmt
-		want    int
-		wantMsg string
+		a        ast.Stmt
+		b        ast.Stmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.AssignStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a: nil,
+			b: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
+			want: 1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.AssignStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.DeclStmt{},
-			b:       &ast.EmptyStmt{},
-			want:    -1,
-			wantMsg: "1 < 2",
+			a: &ast.DeclStmt{
+				Decl: &ast.FuncDecl{},
+			},
+			b:    &ast.EmptyStmt{},
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"statement types did not match",
+					newTestNode("ints did not match: 1 < 2", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.EmptyStmt{},
-			b:       &ast.DeclStmt{},
-			want:    1,
-			wantMsg: "2 > 1",
+			a:    &ast.EmptyStmt{},
+			b:    &ast.DeclStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"statement types did not match",
+					newTestNode("ints did not match: 2 > 1", nil),
+				),
+			),
 		},
 		{
 			a:    &ast.BadStmt{},
@@ -1828,17 +3020,26 @@ func TestCompareStatements(t *testing.T) {
 				Decl: &ast.BadDecl{},
 			},
 			b: &ast.DeclStmt{
-				Decl: &ast.FuncDecl{},
+				Decl: &ast.GenDecl{},
 			},
-			want:    -1,
-			wantMsg: "mismatched declaration types",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"declaration statements did not match",
+					newTestNode(
+						"declarations did not match",
+						newTestNode("declaration types did not match", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.DeclStmt{
-				Decl: &ast.FuncDecl{},
+				Decl: &ast.GenDecl{},
 			},
 			b: &ast.DeclStmt{
-				Decl: &ast.FuncDecl{},
+				Decl: &ast.GenDecl{},
 			},
 			want: 0,
 		},
@@ -1849,8 +3050,14 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.EmptyStmt{
 				Implicit: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"empty statements did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a:    &ast.EmptyStmt{},
@@ -1864,8 +3071,20 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"labeled statements did not match",
+					newTestNode(
+						"labels did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.LabeledStmt{},
@@ -1879,8 +3098,20 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.ExprStmt{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"expression statements did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ExprStmt{},
@@ -1889,13 +3120,30 @@ func TestCompareStatements(t *testing.T) {
 		},
 		{
 			a: &ast.SendStmt{
+				Chan:  &ast.ChanType{},
 				Value: ast.NewIdent("a"),
 			},
 			b: &ast.SendStmt{
+				Chan:  &ast.ChanType{},
 				Value: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"send statements did not match",
+					newTestNode(
+						"values did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.SendStmt{},
@@ -1909,8 +3157,23 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.IncDecStmt{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"increment/decrement statements did not match",
+					newTestNode(
+						"X expressions did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.IncDecStmt{},
@@ -1919,17 +3182,43 @@ func TestCompareStatements(t *testing.T) {
 		},
 		{
 			a: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 				Tok: token.INT,
 			},
 			b: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 				Tok: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"assign statements did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode("ints did not match: 5 < 6", nil),
+						),
+					),
+				),
+			),
 		},
 		{
-			a:    &ast.AssignStmt{},
-			b:    &ast.AssignStmt{},
+			a: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
+			b: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
 			want: 0,
 		},
 		{
@@ -1943,8 +3232,29 @@ func TestCompareStatements(t *testing.T) {
 					Fun: ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"go statements did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"call expressions did not match",
+							newTestNode(
+								"functions did not match",
+								newTestNode(
+									"expressions did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: a < b", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.GoStmt{},
@@ -1962,8 +3272,29 @@ func TestCompareStatements(t *testing.T) {
 					Fun: ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"defer statements did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"call expressions did not match",
+							newTestNode(
+								"functions did not match",
+								newTestNode(
+									"expressions did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: a < b", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.DeferStmt{},
@@ -1981,8 +3312,29 @@ func TestCompareStatements(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"return statements did not match",
+					newTestNode(
+						"results did not match",
+						newTestNode(
+							"expression lists did not match",
+							newTestNode(
+								"expressions at index 0 did not match",
+								newTestNode(
+									"expressions did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: a < b", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ReturnStmt{},
@@ -1996,8 +3348,20 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.BranchStmt{
 				Tok: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"branch statements did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode("ints did not match: 5 < 6", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.BranchStmt{},
@@ -2008,6 +3372,9 @@ func TestCompareStatements(t *testing.T) {
 			a: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.INT,
 					},
 				},
@@ -2015,12 +3382,36 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
+						Lhs: []ast.Expr{
+							ast.NewIdent("a"),
+						},
 						Tok: token.FLOAT,
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"block statements did not match",
+					newTestNode(
+						"statements at index 0 did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.BlockStmt{},
@@ -2030,16 +3421,43 @@ func TestCompareStatements(t *testing.T) {
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.INT,
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"if statements did not match",
+					newTestNode(
+						"init statements did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.IfStmt{},
@@ -2057,8 +3475,29 @@ func TestCompareStatements(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"case clauses did not match",
+					newTestNode(
+						"lists did not match",
+						newTestNode(
+							"expression lists did not match",
+							newTestNode(
+								"expressions at index 0 did not match",
+								newTestNode(
+									"expressions did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: a < b", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.CaseClause{},
@@ -2068,16 +3507,43 @@ func TestCompareStatements(t *testing.T) {
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.INT,
 				},
 			},
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"switch statements did not match",
+					newTestNode(
+						"init statements did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.SwitchStmt{},
@@ -2086,17 +3552,43 @@ func TestCompareStatements(t *testing.T) {
 		},
 		{
 			a: &ast.TypeSwitchStmt{
-				Init: &ast.AssignStmt{
+				Init: &ast.AssignStmt{Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 					Tok: token.INT,
 				},
 			},
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"type switch statements did not match",
+					newTestNode(
+						"init statements did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.TypeSwitchStmt{},
@@ -2106,16 +3598,43 @@ func TestCompareStatements(t *testing.T) {
 		{
 			a: &ast.CommClause{
 				Comm: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.INT,
 				},
 			},
 			b: &ast.CommClause{
 				Comm: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"comm clauses did not match",
+					newTestNode(
+						"comm statements did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.CommClause{},
@@ -2127,6 +3646,9 @@ func TestCompareStatements(t *testing.T) {
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("a"),
+							},
 							Tok: token.INT,
 						},
 					},
@@ -2136,13 +3658,43 @@ func TestCompareStatements(t *testing.T) {
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
+							Lhs: []ast.Expr{
+								ast.NewIdent("a"),
+							},
 							Tok: token.FLOAT,
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"select statements did not match",
+					newTestNode(
+						"bodies did not match",
+						newTestNode(
+							"block statements did not match",
+							newTestNode(
+								"statements at index 0 did not match",
+								newTestNode(
+									"statements did not match",
+									newTestNode(
+										"assign statements did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode(
+												"tokens did not match",
+												newTestNode("ints did not match: 5 < 6", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.SelectStmt{},
@@ -2152,16 +3704,43 @@ func TestCompareStatements(t *testing.T) {
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.INT,
 				},
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("a"),
+					},
 					Tok: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"for statements did not match",
+					newTestNode(
+						"init statements did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.ForStmt{},
@@ -2175,8 +3754,23 @@ func TestCompareStatements(t *testing.T) {
 			b: &ast.RangeStmt{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"statements did not match",
+				newTestNode(
+					"range statements did not match",
+					newTestNode(
+						"key statements did not match",
+						newTestNode(
+							"expressions did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.RangeStmt{},
@@ -2185,39 +3779,51 @@ func TestCompareStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
 }
 
-func TestCompareCompositeLiteratures(t *testing.T) {
+func TestCompareCompositeLiterals(t *testing.T) {
 	testCases := []struct {
-		a       *ast.CompositeLit
-		b       *ast.CompositeLit
-		want    int
-		wantMsg string
+		a        *ast.CompositeLit
+		b        *ast.CompositeLit
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.CompositeLit{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.CompositeLit{},
+			want: 1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.CompositeLit{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.CompositeLit{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2226,8 +3832,20 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 			b: &ast.CompositeLit{
 				Type: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2236,8 +3854,20 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 			b: &ast.CompositeLit{
 				Type: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2253,8 +3883,20 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 					ast.NewIdent("y"),
 				},
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"expression lists did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 < 2", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2270,8 +3912,20 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 					ast.NewIdent("x"),
 				},
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"expression lists did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 2 > 1", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2284,8 +3938,14 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 				Elts:       []ast.Expr{},
 				Incomplete: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2298,8 +3958,14 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 				Elts:       []ast.Expr{},
 				Incomplete: false,
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"composite literals did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CompositeLit{
@@ -2316,16 +3982,16 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareCompositeLiteratures(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareCompositeLiterals(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
-				"compareCompositeLiteratures(%v, %v) == (%d, %s), want (%d, %s)",
+				"compareCompositeLiterals(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2333,22 +3999,34 @@ func TestCompareCompositeLiteratures(t *testing.T) {
 
 func TestCompareParentheses(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ParenExpr
-		b       *ast.ParenExpr
-		want    int
-		wantMsg string
+		a        *ast.ParenExpr
+		b        *ast.ParenExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ParenExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ParenExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"parentheses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ParenExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ParenExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"parentheses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ParenExpr{
@@ -2357,8 +4035,20 @@ func TestCompareParentheses(t *testing.T) {
 			b: &ast.ParenExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"parentheses did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ParenExpr{
@@ -2367,8 +4057,20 @@ func TestCompareParentheses(t *testing.T) {
 			b: &ast.ParenExpr{
 				X: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"parentheses did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ParenExpr{
@@ -2381,16 +4083,16 @@ func TestCompareParentheses(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareParentheses(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareParentheses(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareParentheses(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2398,42 +4100,76 @@ func TestCompareParentheses(t *testing.T) {
 
 func TestCompareSelectors(t *testing.T) {
 	testCases := []struct {
-		a       *ast.SelectorExpr
-		b       *ast.SelectorExpr
-		want    int
-		wantMsg string
+		a        *ast.SelectorExpr
+		b        *ast.SelectorExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.SelectorExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.SelectorExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.SelectorExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.SelectorExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SelectorExpr{
 				Sel: ast.NewIdent("a"),
+				X:   ast.NewIdent("x"),
 			},
 			b: &ast.SelectorExpr{
 				Sel: ast.NewIdent("b"),
+				X:   ast.NewIdent("x"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"selectors did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectorExpr{
 				Sel: ast.NewIdent("b"),
+				X:   ast.NewIdent("x"),
 			},
 			b: &ast.SelectorExpr{
 				Sel: ast.NewIdent("a"),
+				X:   ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"selectors did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectorExpr{
@@ -2444,8 +4180,20 @@ func TestCompareSelectors(t *testing.T) {
 				Sel: ast.NewIdent("a"),
 				X:   ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectorExpr{
@@ -2456,8 +4204,20 @@ func TestCompareSelectors(t *testing.T) {
 				Sel: ast.NewIdent("a"),
 				X:   ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"selector expressions did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectorExpr{
@@ -2472,16 +4232,16 @@ func TestCompareSelectors(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSelectors(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSelectors(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSelectors(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2489,42 +4249,82 @@ func TestCompareSelectors(t *testing.T) {
 
 func TestCompareIndexExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.IndexExpr
-		b       *ast.IndexExpr
-		want    int
-		wantMsg string
+		a        *ast.IndexExpr
+		b        *ast.IndexExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.IndexExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.IndexExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.IndexExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.IndexExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.IndexExpr{
 				Index: ast.NewIdent("a"),
+				X:     ast.NewIdent("x"),
 			},
 			b: &ast.IndexExpr{
 				Index: ast.NewIdent("b"),
+				X:     ast.NewIdent("x"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"indices did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IndexExpr{
 				Index: ast.NewIdent("b"),
+				X:     ast.NewIdent("x"),
 			},
 			b: &ast.IndexExpr{
 				Index: ast.NewIdent("a"),
+				X:     ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"indices did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IndexExpr{
@@ -2535,8 +4335,20 @@ func TestCompareIndexExpressions(t *testing.T) {
 				Index: ast.NewIdent("a"),
 				X:     ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IndexExpr{
@@ -2547,8 +4359,20 @@ func TestCompareIndexExpressions(t *testing.T) {
 				Index: ast.NewIdent("a"),
 				X:     ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"index expressions did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IndexExpr{
@@ -2563,16 +4387,16 @@ func TestCompareIndexExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareIndexExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareIndexExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareIndexExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2580,22 +4404,34 @@ func TestCompareIndexExpressions(t *testing.T) {
 
 func TestCompareSliceExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.SliceExpr
-		b       *ast.SliceExpr
-		want    int
-		wantMsg string
+		a        *ast.SliceExpr
+		b        *ast.SliceExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.SliceExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.SliceExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.SliceExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.SliceExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2604,8 +4440,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 			b: &ast.SliceExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2614,8 +4462,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 			b: &ast.SliceExpr{
 				X: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2626,8 +4486,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				X:   ast.NewIdent("a"),
 				Low: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"low expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2638,8 +4510,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				X:   ast.NewIdent("a"),
 				Low: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"low expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2652,8 +4536,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				Low:  ast.NewIdent("x"),
 				High: ast.NewIdent("j"),
 			},
-			want:    -1,
-			wantMsg: "i < j",
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"high expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: i < j", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2666,8 +4562,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				Low:  ast.NewIdent("x"),
 				High: ast.NewIdent("i"),
 			},
-			want:    1,
-			wantMsg: "j > i",
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"high expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: j > i", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2682,8 +4590,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				High: ast.NewIdent("i"),
 				Max:  ast.NewIdent("n"),
 			},
-			want:    -1,
-			wantMsg: "m < n",
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"max expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: m < n", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2698,8 +4618,20 @@ func TestCompareSliceExpressions(t *testing.T) {
 				High: ast.NewIdent("i"),
 				Max:  ast.NewIdent("m"),
 			},
-			want:    1,
-			wantMsg: "n > m",
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"max expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: n > m", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2716,8 +4648,14 @@ func TestCompareSliceExpressions(t *testing.T) {
 				Max:    ast.NewIdent("m"),
 				Slice3: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"slice3 values did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2734,8 +4672,14 @@ func TestCompareSliceExpressions(t *testing.T) {
 				Max:    ast.NewIdent("m"),
 				Slice3: false,
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"slices did not match",
+				newTestNode(
+					"slice3 values did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SliceExpr{
@@ -2756,16 +4700,16 @@ func TestCompareSliceExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSliceExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSliceExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSliceExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2773,42 +4717,82 @@ func TestCompareSliceExpressions(t *testing.T) {
 
 func TestCompareTypeAssertions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.TypeAssertExpr
-		b       *ast.TypeAssertExpr
-		want    int
-		wantMsg string
+		a        *ast.TypeAssertExpr
+		b        *ast.TypeAssertExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.TypeAssertExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.TypeAssertExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.TypeAssertExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.TypeAssertExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.TypeAssertExpr{
 				Type: ast.NewIdent("a"),
+				X:    ast.NewIdent("x"),
 			},
 			b: &ast.TypeAssertExpr{
 				Type: ast.NewIdent("b"),
+				X:    ast.NewIdent("x"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeAssertExpr{
 				Type: ast.NewIdent("b"),
+				X:    ast.NewIdent("x"),
 			},
 			b: &ast.TypeAssertExpr{
 				Type: ast.NewIdent("a"),
+				X:    ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeAssertExpr{
@@ -2819,8 +4803,20 @@ func TestCompareTypeAssertions(t *testing.T) {
 				Type: ast.NewIdent("a"),
 				X:    ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeAssertExpr{
@@ -2831,8 +4827,20 @@ func TestCompareTypeAssertions(t *testing.T) {
 				Type: ast.NewIdent("a"),
 				X:    ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"type assertions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeAssertExpr{
@@ -2847,16 +4855,16 @@ func TestCompareTypeAssertions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareTypeAssertions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareTypeAssertions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareTypeAssertions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2864,22 +4872,34 @@ func TestCompareTypeAssertions(t *testing.T) {
 
 func TestCompareCallExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.CallExpr
-		b       *ast.CallExpr
-		want    int
-		wantMsg string
+		a        *ast.CallExpr
+		b        *ast.CallExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.CallExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.CallExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.CallExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.CallExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CallExpr{
@@ -2888,8 +4908,20 @@ func TestCompareCallExpressions(t *testing.T) {
 			b: &ast.CallExpr{
 				Fun: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"functions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CallExpr{
@@ -2898,8 +4930,20 @@ func TestCompareCallExpressions(t *testing.T) {
 			b: &ast.CallExpr{
 				Fun: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"functions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CallExpr{
@@ -2912,22 +4956,45 @@ func TestCompareCallExpressions(t *testing.T) {
 					ast.NewIdent("x"),
 				},
 			},
-			want:    -1,
-			wantMsg: "0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"arguments did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 0 < 1", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CallExpr{
 				Fun: ast.NewIdent("a"),
 				Args: []ast.Expr{
 					ast.NewIdent("x"),
-				},
-			},
+				}},
 			b: &ast.CallExpr{
 				Fun:  ast.NewIdent("a"),
 				Args: []ast.Expr{},
 			},
-			want:    1,
-			wantMsg: "1 > 0",
+			want: 1,
+			wantNode: newTestNode(
+				"call expressions did not match",
+				newTestNode(
+					"arguments did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 > 0", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CallExpr{
@@ -2946,16 +5013,16 @@ func TestCompareCallExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareCallExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareCallExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareCallExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -2963,22 +5030,34 @@ func TestCompareCallExpressions(t *testing.T) {
 
 func TestCompareStarExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.StarExpr
-		b       *ast.StarExpr
-		want    int
-		wantMsg string
+		a        *ast.StarExpr
+		b        *ast.StarExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.StarExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.StarExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"star expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.StarExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.StarExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"star expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.StarExpr{
@@ -2987,8 +5066,20 @@ func TestCompareStarExpressions(t *testing.T) {
 			b: &ast.StarExpr{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"star expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.StarExpr{
@@ -2997,8 +5088,20 @@ func TestCompareStarExpressions(t *testing.T) {
 			b: &ast.StarExpr{
 				X: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"star expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.StarExpr{
@@ -3011,16 +5114,16 @@ func TestCompareStarExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareStarExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareStarExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareStarExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3028,22 +5131,34 @@ func TestCompareStarExpressions(t *testing.T) {
 
 func TestCompareUnaryExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.UnaryExpr
-		b       *ast.UnaryExpr
-		want    int
-		wantMsg string
+		a        *ast.UnaryExpr
+		b        *ast.UnaryExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.UnaryExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.UnaryExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.UnaryExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.UnaryExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.UnaryExpr{
@@ -3052,8 +5167,17 @@ func TestCompareUnaryExpressions(t *testing.T) {
 			b: &ast.UnaryExpr{
 				Op: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"operators did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.UnaryExpr{
@@ -3062,8 +5186,17 @@ func TestCompareUnaryExpressions(t *testing.T) {
 			b: &ast.UnaryExpr{
 				Op: token.INT,
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"operators did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.UnaryExpr{
@@ -3074,8 +5207,20 @@ func TestCompareUnaryExpressions(t *testing.T) {
 				Op: token.INT,
 				X:  ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.UnaryExpr{
@@ -3086,8 +5231,20 @@ func TestCompareUnaryExpressions(t *testing.T) {
 				Op: token.INT,
 				X:  ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"unary expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.UnaryExpr{
@@ -3102,16 +5259,16 @@ func TestCompareUnaryExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareUnaryExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareUnaryExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareUnaryExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3119,42 +5276,76 @@ func TestCompareUnaryExpressions(t *testing.T) {
 
 func TestCompareBinaryExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BinaryExpr
-		b       *ast.BinaryExpr
-		want    int
-		wantMsg string
+		a        *ast.BinaryExpr
+		b        *ast.BinaryExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.BinaryExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BinaryExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BinaryExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BinaryExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
 				Op: token.INT,
+				X:  ast.NewIdent("a"),
 			},
 			b: &ast.BinaryExpr{
 				Op: token.FLOAT,
+				X:  ast.NewIdent("a"),
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"operators did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
 				Op: token.FLOAT,
+				X:  ast.NewIdent("a"),
 			},
 			b: &ast.BinaryExpr{
 				Op: token.INT,
+				X:  ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"operators did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
@@ -3165,8 +5356,20 @@ func TestCompareBinaryExpressions(t *testing.T) {
 				Op: token.INT,
 				X:  ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
@@ -3177,8 +5380,20 @@ func TestCompareBinaryExpressions(t *testing.T) {
 				Op: token.INT,
 				X:  ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
@@ -3191,8 +5406,20 @@ func TestCompareBinaryExpressions(t *testing.T) {
 				X:  ast.NewIdent("a"),
 				Y:  ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"Y expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
@@ -3205,8 +5432,20 @@ func TestCompareBinaryExpressions(t *testing.T) {
 				X:  ast.NewIdent("a"),
 				Y:  ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"binary expressions did not match",
+				newTestNode(
+					"Y expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BinaryExpr{
@@ -3223,16 +5462,16 @@ func TestCompareBinaryExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBinaryExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBinaryExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBinaryExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3240,22 +5479,34 @@ func TestCompareBinaryExpressions(t *testing.T) {
 
 func TestCompareKeyValueExpressions(t *testing.T) {
 	testCases := []struct {
-		a       *ast.KeyValueExpr
-		b       *ast.KeyValueExpr
-		want    int
-		wantMsg string
+		a        *ast.KeyValueExpr
+		b        *ast.KeyValueExpr
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.KeyValueExpr{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.KeyValueExpr{},
+			want: 1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.KeyValueExpr{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.KeyValueExpr{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.KeyValueExpr{
@@ -3264,8 +5515,20 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 			b: &ast.KeyValueExpr{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"keys did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.KeyValueExpr{
@@ -3274,8 +5537,20 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 			b: &ast.KeyValueExpr{
 				Key: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"keys did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.KeyValueExpr{
@@ -3286,8 +5561,20 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"values did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.KeyValueExpr{
@@ -3298,8 +5585,20 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"key-value expressions did not match",
+				newTestNode(
+					"values did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.KeyValueExpr{
@@ -3314,16 +5613,16 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareKeyValueExpressions(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareKeyValueExpressions(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareKeyValueExpressions(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3331,22 +5630,34 @@ func TestCompareKeyValueExpressions(t *testing.T) {
 
 func TestCompareArrayTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ArrayType
-		b       *ast.ArrayType
-		want    int
-		wantMsg string
+		a        *ast.ArrayType
+		b        *ast.ArrayType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ArrayType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ArrayType{},
+			want: 1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ArrayType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ArrayType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ArrayType{
@@ -3355,8 +5666,20 @@ func TestCompareArrayTypes(t *testing.T) {
 			b: &ast.ArrayType{
 				Len: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"length expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ArrayType{
@@ -3365,8 +5688,20 @@ func TestCompareArrayTypes(t *testing.T) {
 			b: &ast.ArrayType{
 				Len: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"length expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ArrayType{
@@ -3377,8 +5712,20 @@ func TestCompareArrayTypes(t *testing.T) {
 				Len: ast.NewIdent("a"),
 				Elt: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"element type expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ArrayType{
@@ -3389,8 +5736,20 @@ func TestCompareArrayTypes(t *testing.T) {
 				Len: ast.NewIdent("a"),
 				Elt: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"array types did not match",
+				newTestNode(
+					"element type expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ArrayType{
@@ -3405,16 +5764,16 @@ func TestCompareArrayTypes(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareArrayTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareArrayTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareArrayTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3422,22 +5781,34 @@ func TestCompareArrayTypes(t *testing.T) {
 
 func TestCompareStructTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.StructType
-		b       *ast.StructType
-		want    int
-		wantMsg string
+		a        *ast.StructType
+		b        *ast.StructType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.StructType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.StructType{},
+			want: 1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.StructType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.StructType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.StructType{
@@ -3446,8 +5817,14 @@ func TestCompareStructTypes(t *testing.T) {
 			b: &ast.StructType{
 				Incomplete: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.StructType{
@@ -3456,8 +5833,14 @@ func TestCompareStructTypes(t *testing.T) {
 			b: &ast.StructType{
 				Incomplete: false,
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
 			a: &ast.StructType{
@@ -3484,8 +5867,35 @@ func TestCompareStructTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"field lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: a < b", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.StructType{
@@ -3512,8 +5922,35 @@ func TestCompareStructTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"struct types did not match",
+				newTestNode(
+					"field lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: b > a", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.StructType{
@@ -3544,16 +5981,16 @@ func TestCompareStructTypes(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareStructTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareStructTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareStructTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3561,22 +5998,34 @@ func TestCompareStructTypes(t *testing.T) {
 
 func TestCompareFunctionTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.FuncType
-		b       *ast.FuncType
-		want    int
-		wantMsg string
+		a        *ast.FuncType
+		b        *ast.FuncType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.FuncType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.FuncType{},
+			want: 1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.FuncType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.FuncType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.FuncType{
@@ -3601,8 +6050,35 @@ func TestCompareFunctionTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"parameter lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: a < b", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncType{
@@ -3627,8 +6103,35 @@ func TestCompareFunctionTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "function type parameters did not match: fields at index 0 did not match: field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"parameter lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: b > a", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncType{
@@ -3641,6 +6144,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3661,6 +6165,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3671,8 +6176,35 @@ func TestCompareFunctionTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "function type results did not match: fields at index 0 did not match: field names did not match: x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"result lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: x < y", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncType{
@@ -3685,6 +6217,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3705,6 +6238,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3715,8 +6249,35 @@ func TestCompareFunctionTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "function type results did not match: fields at index 0 did not match: field names did not match: y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"function types did not match",
+				newTestNode(
+					"result lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: y > x", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncType{
@@ -3729,6 +6290,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3749,6 +6311,7 @@ func TestCompareFunctionTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Results: &ast.FieldList{
 					List: []*ast.Field{
 						{
@@ -3763,16 +6326,16 @@ func TestCompareFunctionTypes(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFunctionTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFunctionTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareFunctionTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3780,52 +6343,88 @@ func TestCompareFunctionTypes(t *testing.T) {
 
 func TestCompareFieldLists(t *testing.T) {
 	testCases := []struct {
-		a       *ast.FieldList
-		b       *ast.FieldList
-		want    int
-		wantMsg string
+		a        *ast.FieldList
+		b        *ast.FieldList
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.FieldList{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.FieldList{},
+			want: 1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.FieldList{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
-		},
-		{
-			a: &ast.FieldList{
-				List: []*ast.Field{
-					{},
-				},
-			},
-			b: &ast.FieldList{
-				List: []*ast.Field{
-					{},
-					{},
-				},
-			},
-			want:    -1,
-			wantMsg: "length of field lists did not match: 1 < 2",
+			a:    &ast.FieldList{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.FieldList{
 				List: []*ast.Field{
-					{},
-					{},
+					{
+						Type: ast.NewIdent("a"),
+					},
 				},
 			},
 			b: &ast.FieldList{
 				List: []*ast.Field{
-					{},
+					{
+						Type: ast.NewIdent("a"),
+					},
+					{
+						Type: ast.NewIdent("a"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "length of field lists did not match: 2 > 1",
+			want: -1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 < 2", nil),
+				),
+			),
+		},
+		{
+			a: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Type: ast.NewIdent("a"),
+					},
+					{
+						Type: ast.NewIdent("a"),
+					},
+				},
+			},
+			b: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Type: ast.NewIdent("a"),
+					},
+				},
+			},
+			want: 1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 2 > 1", nil),
+				),
+			),
 		},
 		{
 			a: &ast.FieldList{
@@ -3846,8 +6445,29 @@ func TestCompareFieldLists(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"fields at index 0 did not match",
+					newTestNode(
+						"fields did not match",
+						newTestNode(
+							"name lists did not match",
+							newTestNode(
+								"identifier lists did not match",
+								newTestNode(
+									"identifiers at index 0 did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: a < b", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FieldList{
@@ -3868,8 +6488,29 @@ func TestCompareFieldLists(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"field lists did not match",
+				newTestNode(
+					"fields at index 0 did not match",
+					newTestNode(
+						"fields did not match",
+						newTestNode(
+							"name lists did not match",
+							newTestNode(
+								"identifier lists did not match",
+								newTestNode(
+									"identifiers at index 0 did not match",
+									newTestNode(
+										"identifiers did not match",
+										newTestNode("strings did not match: b > a", nil),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FieldList{
@@ -3894,16 +6535,16 @@ func TestCompareFieldLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFieldLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFieldLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareFieldLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -3911,21 +6552,34 @@ func TestCompareFieldLists(t *testing.T) {
 
 func TestCompareFields(t *testing.T) {
 	testCases := []struct {
-		a       *ast.Field
-		b       *ast.Field
-		want    int
-		wantMsg string
+		a        *ast.Field
+		b        *ast.Field
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.Field{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.Field{},
+			want: 1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.Field{},
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.Field{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -3938,8 +6592,23 @@ func TestCompareFields(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"name lists did not match",
+					newTestNode(
+						"identifier lists did not match",
+						newTestNode(
+							"identifiers at index 0 did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -3952,8 +6621,23 @@ func TestCompareFields(t *testing.T) {
 					ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"name lists did not match",
+					newTestNode(
+						"identifier lists did not match",
+						newTestNode(
+							"identifiers at index 0 did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: b > a", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -3968,8 +6652,20 @@ func TestCompareFields(t *testing.T) {
 				},
 				Type: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "field types did not match: x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -3984,8 +6680,20 @@ func TestCompareFields(t *testing.T) {
 				},
 				Type: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "field types did not match: y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"types did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -4006,8 +6714,23 @@ func TestCompareFields(t *testing.T) {
 					Kind: token.FLOAT,
 				},
 			},
-			want:    -1,
-			wantMsg: "field tags did not match: 5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"tags did not match",
+					newTestNode(
+						"basic literals did not match",
+						newTestNode(
+							"kinds did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode("ints did not match: 5 < 6", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -4028,8 +6751,23 @@ func TestCompareFields(t *testing.T) {
 					Kind: token.INT,
 				},
 			},
-			want:    1,
-			wantMsg: "field tags did not match: 6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"fields did not match",
+				newTestNode(
+					"tags did not match",
+					newTestNode(
+						"basic literals did not match",
+						newTestNode(
+							"kinds did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode("ints did not match: 6 > 5", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.Field{
@@ -4054,16 +6792,16 @@ func TestCompareFields(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFields(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFields(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareFields(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4071,22 +6809,34 @@ func TestCompareFields(t *testing.T) {
 
 func TestCompareInterfaceTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.InterfaceType
-		b       *ast.InterfaceType
-		want    int
-		wantMsg string
+		a        *ast.InterfaceType
+		b        *ast.InterfaceType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.InterfaceType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.InterfaceType{},
+			want: 1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.InterfaceType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.InterfaceType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4111,8 +6861,35 @@ func TestCompareInterfaceTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "fields at index 0 did not match: field names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"method lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: a < b", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4137,8 +6914,35 @@ func TestCompareInterfaceTypes(t *testing.T) {
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "fields at index 0 did not match: field names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"method lists did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"fields at index 0 did not match",
+							newTestNode(
+								"fields did not match",
+								newTestNode(
+									"name lists did not match",
+									newTestNode(
+										"identifier lists did not match",
+										newTestNode(
+											"identifiers at index 0 did not match",
+											newTestNode(
+												"identifiers did not match",
+												newTestNode("strings did not match: b > a", nil),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4151,6 +6955,7 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: false,
 			},
 			b: &ast.InterfaceType{
@@ -4163,10 +6968,17 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4179,6 +6991,7 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: true,
 			},
 			b: &ast.InterfaceType{
@@ -4191,10 +7004,17 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: false,
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"interface types did not match",
+				newTestNode(
+					"incomplete values did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
 			a: &ast.InterfaceType{
@@ -4207,6 +7027,7 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: true,
 			},
 			b: &ast.InterfaceType{
@@ -4219,22 +7040,23 @@ func TestCompareInterfaceTypes(t *testing.T) {
 						},
 					},
 				},
+
 				Incomplete: true,
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareInterfaceTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareInterfaceTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareInterfaceTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4242,22 +7064,34 @@ func TestCompareInterfaceTypes(t *testing.T) {
 
 func TestCompareMapTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.MapType
-		b       *ast.MapType
-		want    int
-		wantMsg string
+		a        *ast.MapType
+		b        *ast.MapType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.MapType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.MapType{},
+			want: 1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.MapType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.MapType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.MapType{
@@ -4266,8 +7100,20 @@ func TestCompareMapTypes(t *testing.T) {
 			b: &ast.MapType{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"key expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.MapType{
@@ -4276,8 +7122,20 @@ func TestCompareMapTypes(t *testing.T) {
 			b: &ast.MapType{
 				Key: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"key expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.MapType{
@@ -4288,8 +7146,20 @@ func TestCompareMapTypes(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"value expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.MapType{
@@ -4300,8 +7170,20 @@ func TestCompareMapTypes(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"map types did not match",
+				newTestNode(
+					"value expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.MapType{
@@ -4316,16 +7198,16 @@ func TestCompareMapTypes(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareMapTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareMapTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareMapTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4333,22 +7215,34 @@ func TestCompareMapTypes(t *testing.T) {
 
 func TestCompareChannelTypes(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ChanType
-		b       *ast.ChanType
-		want    int
-		wantMsg string
+		a        *ast.ChanType
+		b        *ast.ChanType
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ChanType{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ChanType{},
+			want: 1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ChanType{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ChanType{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ChanType{
@@ -4357,8 +7251,17 @@ func TestCompareChannelTypes(t *testing.T) {
 			b: &ast.ChanType{
 				Dir: ast.RECV,
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"directions did not match",
+					newTestNode(
+						"channel directions did not match",
+						newTestNode("ints did not match: 1 < 2", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ChanType{
@@ -4367,8 +7270,17 @@ func TestCompareChannelTypes(t *testing.T) {
 			b: &ast.ChanType{
 				Dir: ast.SEND,
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"directions did not match",
+					newTestNode(
+						"channel directions did not match",
+						newTestNode("ints did not match: 2 > 1", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ChanType{
@@ -4379,8 +7291,20 @@ func TestCompareChannelTypes(t *testing.T) {
 				Dir:   ast.SEND,
 				Value: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"value expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ChanType{
@@ -4391,8 +7315,20 @@ func TestCompareChannelTypes(t *testing.T) {
 				Dir:   ast.SEND,
 				Value: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"channel types did not match",
+				newTestNode(
+					"value expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ChanType{
@@ -4407,16 +7343,16 @@ func TestCompareChannelTypes(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareChannelTypes(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareChannelTypes(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareChannelTypes(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4424,22 +7360,28 @@ func TestCompareChannelTypes(t *testing.T) {
 
 func TestCompareChannelDirections(t *testing.T) {
 	testCases := []struct {
-		a       ast.ChanDir
-		b       ast.ChanDir
-		want    int
-		wantMsg string
+		a        ast.ChanDir
+		b        ast.ChanDir
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       ast.SEND,
-			b:       ast.RECV,
-			want:    -1,
-			wantMsg: "1 < 2",
+			a:    ast.SEND,
+			b:    ast.RECV,
+			want: -1,
+			wantNode: newTestNode(
+				"channel directions did not match",
+				newTestNode("ints did not match: 1 < 2", nil),
+			),
 		},
 		{
-			a:       ast.RECV,
-			b:       ast.SEND,
-			want:    1,
-			wantMsg: "2 > 1",
+			a:    ast.RECV,
+			b:    ast.SEND,
+			want: 1,
+			wantNode: newTestNode(
+				"channel directions did not match",
+				newTestNode("ints did not match: 2 > 1", nil),
+			),
 		},
 		{
 			a:    ast.RECV,
@@ -4448,16 +7390,16 @@ func TestCompareChannelDirections(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareChannelDirections(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareChannelDirections(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareChannelDirections(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4465,22 +7407,34 @@ func TestCompareChannelDirections(t *testing.T) {
 
 func TestCompareBadStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BadStmt
-		b       *ast.BadStmt
-		want    int
-		wantMsg string
+		a        *ast.BadStmt
+		b        *ast.BadStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.BadStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BadStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"bad statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BadStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BadStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"bad statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a:    &ast.BadStmt{},
@@ -4489,16 +7443,16 @@ func TestCompareBadStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBadStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBadStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBadStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4506,76 +7460,124 @@ func TestCompareBadStatements(t *testing.T) {
 
 func TestCompareDeclStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.DeclStmt
-		b       *ast.DeclStmt
-		want    int
-		wantMsg string
+		a        *ast.DeclStmt
+		b        *ast.DeclStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.DeclStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.DeclStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"declaration statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.DeclStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.DeclStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"declaration statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
-			want:    -1,
-			wantMsg: "function names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"declaration statements did not match",
+				newTestNode(
+					"declarations did not match",
+					newTestNode(
+						"function declarations did not match",
+						newTestNode(
+							"names did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: a < b", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
-			want:    1,
-			wantMsg: "function names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"declaration statements did not match",
+				newTestNode(
+					"declarations did not match",
+					newTestNode(
+						"function declarations did not match",
+						newTestNode(
+							"names did not match",
+							newTestNode(
+								"identifiers did not match",
+								newTestNode("strings did not match: b > a", nil),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: &ast.DeclStmt{
 				Decl: &ast.FuncDecl{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareDeclStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareDeclStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareDeclStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4583,46 +7585,64 @@ func TestCompareDeclStatements(t *testing.T) {
 
 func TestCompareDecls(t *testing.T) {
 	testCases := []struct {
-		a       ast.Decl
-		b       ast.Decl
-		want    int
-		wantMsg string
+		a        ast.Decl
+		b        ast.Decl
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       &ast.BadDecl{},
-			b:       &ast.GenDecl{},
-			want:    -1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.BadDecl{},
+			b:    &ast.GenDecl{},
+			want: -1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
-			a:       &ast.BadDecl{},
-			b:       &ast.FuncDecl{},
-			want:    -1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.BadDecl{},
+			b:    &ast.FuncDecl{},
+			want: -1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
-			a:       &ast.GenDecl{},
-			b:       &ast.FuncDecl{},
-			want:    -1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.GenDecl{},
+			b:    &ast.FuncDecl{},
+			want: -1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
-			a:       &ast.GenDecl{},
-			b:       &ast.BadDecl{},
-			want:    1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.GenDecl{},
+			b:    &ast.BadDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
-			a:       &ast.FuncDecl{},
-			b:       &ast.BadDecl{},
-			want:    1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.FuncDecl{},
+			b:    &ast.BadDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
-			a:       &ast.FuncDecl{},
-			b:       &ast.GenDecl{},
-			want:    1,
-			wantMsg: "mismatched declaration types",
+			a:    &ast.FuncDecl{},
+			b:    &ast.GenDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode("declaration types did not match", nil),
+			),
 		},
 		{
 			a:    &ast.BadDecl{},
@@ -4636,8 +7656,20 @@ func TestCompareDecls(t *testing.T) {
 			b: &ast.GenDecl{
 				Tok: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "generic declaration tokens did not match: 5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode(
+					"generic declarations did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode("ints did not match: 5 < 6", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4646,8 +7678,20 @@ func TestCompareDecls(t *testing.T) {
 			b: &ast.GenDecl{
 				Tok: token.INT,
 			},
-			want:    1,
-			wantMsg: "generic declaration tokens did not match: 6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode(
+					"generic declarations did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode(
+							"tokens did not match",
+							newTestNode("ints did not match: 6 > 5", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a:    &ast.GenDecl{},
@@ -4657,40 +7701,72 @@ func TestCompareDecls(t *testing.T) {
 		{
 			a: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
+				Type: &ast.FuncType{},
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("b"),
+				Type: &ast.FuncType{},
 			},
-			want:    -1,
-			wantMsg: "function names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode(
+					"function declarations did not match",
+					newTestNode(
+						"names did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
 				Name: ast.NewIdent("b"),
+				Type: &ast.FuncType{},
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
+				Type: &ast.FuncType{},
 			},
-			want:    1,
-			wantMsg: "function names did not match: b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"declarations did not match",
+				newTestNode(
+					"function declarations did not match",
+					newTestNode(
+						"names did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
-			a:    &ast.FuncDecl{},
-			b:    &ast.FuncDecl{},
+			a: &ast.FuncDecl{
+				Type: &ast.FuncType{},
+			},
+			b: &ast.FuncDecl{
+				Type: &ast.FuncType{},
+			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareDecls(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareDecls(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareDecls(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4698,22 +7774,34 @@ func TestCompareDecls(t *testing.T) {
 
 func TestCompareBadDecls(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BadDecl
-		b       *ast.BadDecl
-		want    int
-		wantMsg string
+		a        *ast.BadDecl
+		b        *ast.BadDecl
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.BadDecl{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BadDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"bad declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BadDecl{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BadDecl{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"bad declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a:    &ast.BadDecl{},
@@ -4722,16 +7810,16 @@ func TestCompareBadDecls(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBadDecls(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBadDecls(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBadDecls(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4739,22 +7827,34 @@ func TestCompareBadDecls(t *testing.T) {
 
 func TestCompareGenDecls(t *testing.T) {
 	testCases := []struct {
-		a       *ast.GenDecl
-		b       *ast.GenDecl
-		want    int
-		wantMsg string
+		a        *ast.GenDecl
+		b        *ast.GenDecl
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.GenDecl{},
-			want:    1,
-			wantMsg: "generic declaration nil comparisons did not match: true > false",
+			a:    nil,
+			b:    &ast.GenDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.GenDecl{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "generic declaration nil comparisons did not match: false < true",
+			a:    &ast.GenDecl{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4763,8 +7863,17 @@ func TestCompareGenDecls(t *testing.T) {
 			b: &ast.GenDecl{
 				Tok: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "generic declaration tokens did not match: 5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4773,8 +7882,17 @@ func TestCompareGenDecls(t *testing.T) {
 			b: &ast.GenDecl{
 				Tok: token.INT,
 			},
-			want:    1,
-			wantMsg: "generic declaration tokens did not match: 6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4790,8 +7908,20 @@ func TestCompareGenDecls(t *testing.T) {
 					&ast.ImportSpec{},
 				},
 			},
-			want:    -1,
-			wantMsg: "generic declaration spec lists did not match: 1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"spec lists did not match",
+					newTestNode(
+						"spec lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 < 2", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4807,8 +7937,20 @@ func TestCompareGenDecls(t *testing.T) {
 					&ast.ImportSpec{},
 				},
 			},
-			want:    1,
-			wantMsg: "generic declaration spec lists did not match: 2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"generic declarations did not match",
+				newTestNode(
+					"spec lists did not match",
+					newTestNode(
+						"spec lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 2 > 1", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GenDecl{
@@ -4827,16 +7969,16 @@ func TestCompareGenDecls(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareGenDecls(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareGenDecls(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareGenDecls(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4844,66 +7986,76 @@ func TestCompareGenDecls(t *testing.T) {
 
 func TestCompareFuncDecls(t *testing.T) {
 	testCases := []struct {
-		a       *ast.FuncDecl
-		b       *ast.FuncDecl
-		want    int
-		wantMsg string
+		a        *ast.FuncDecl
+		b        *ast.FuncDecl
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.FuncDecl{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.FuncDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.FuncDecl{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.FuncDecl{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
+				Type: &ast.FuncType{},
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("b"),
+				Type: &ast.FuncType{},
 			},
-			want:    -1,
-			wantMsg: "function names did not match: a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
 				Name: ast.NewIdent("b"),
+				Type: &ast.FuncType{},
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
+				Type: &ast.FuncType{},
 			},
-			want:    1,
-			wantMsg: "function names did not match: b > a",
-		},
-		{
-			a: &ast.FuncDecl{
-				Name: ast.NewIdent("a"),
-				Recv: &ast.FieldList{},
-			},
-			b: &ast.FuncDecl{
-				Name: ast.NewIdent("a"),
-				Recv: nil,
-			},
-			want:    -1,
-			wantMsg: "function receivers did not match: false < true",
-		},
-		{
-			a: &ast.FuncDecl{
-				Name: ast.NewIdent("a"),
-				Recv: nil,
-			},
-			b: &ast.FuncDecl{
-				Name: ast.NewIdent("a"),
-				Recv: &ast.FieldList{},
-			},
-			want:    1,
-			wantMsg: "function receivers did not match: true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"names did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4913,25 +8065,49 @@ func TestCompareFuncDecls(t *testing.T) {
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
-				Recv: &ast.FieldList{},
-				Type: nil,
+				Recv: nil,
+				Type: &ast.FuncType{},
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"receivers did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"nil comparisons did not match",
+							newTestNode("bools did not match: false < true", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
-				Recv: &ast.FieldList{},
-				Type: nil,
+				Recv: nil,
+				Type: &ast.FuncType{},
 			},
 			b: &ast.FuncDecl{
 				Name: ast.NewIdent("a"),
 				Recv: &ast.FieldList{},
 				Type: &ast.FuncType{},
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"receivers did not match",
+					newTestNode(
+						"field lists did not match",
+						newTestNode(
+							"nil comparisons did not match",
+							newTestNode("bools did not match: true > false", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4946,8 +8122,20 @@ func TestCompareFuncDecls(t *testing.T) {
 				Type: &ast.FuncType{},
 				Body: nil,
 			},
-			want:    -1,
-			wantMsg: "function bodies did not match: false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"nil comparisons did not match",
+							newTestNode("bools did not match: false < true", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4962,8 +8150,20 @@ func TestCompareFuncDecls(t *testing.T) {
 				Type: &ast.FuncType{},
 				Body: &ast.BlockStmt{},
 			},
-			want:    1,
-			wantMsg: "function bodies did not match: true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"function declarations did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"nil comparisons did not match",
+							newTestNode("bools did not match: true > false", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.FuncDecl{
@@ -4982,16 +8182,16 @@ func TestCompareFuncDecls(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFuncDecls(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFuncDecls(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareFuncDecls(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -4999,22 +8199,34 @@ func TestCompareFuncDecls(t *testing.T) {
 
 func TestCompareEmptyStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.EmptyStmt
-		b       *ast.EmptyStmt
-		want    int
-		wantMsg string
+		a        *ast.EmptyStmt
+		b        *ast.EmptyStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.EmptyStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.EmptyStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"empty statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.EmptyStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.EmptyStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"empty statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.EmptyStmt{
@@ -5023,8 +8235,11 @@ func TestCompareEmptyStatements(t *testing.T) {
 			b: &ast.EmptyStmt{
 				Implicit: true,
 			},
-			want:    -1,
-			wantMsg: "false < true",
+			want: -1,
+			wantNode: newTestNode(
+				"empty statements did not match",
+				newTestNode("bools did not match: false < true", nil),
+			),
 		},
 		{
 			a: &ast.EmptyStmt{
@@ -5033,8 +8248,11 @@ func TestCompareEmptyStatements(t *testing.T) {
 			b: &ast.EmptyStmt{
 				Implicit: false,
 			},
-			want:    1,
-			wantMsg: "true > false",
+			want: 1,
+			wantNode: newTestNode(
+				"empty statements did not match",
+				newTestNode("bools did not match: true > false", nil),
+			),
 		},
 		{
 			a: &ast.EmptyStmt{
@@ -5047,16 +8265,16 @@ func TestCompareEmptyStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareEmptyStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareEmptyStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareEmptyStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5064,22 +8282,34 @@ func TestCompareEmptyStatements(t *testing.T) {
 
 func TestCompareLabeledStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.LabeledStmt
-		b       *ast.LabeledStmt
-		want    int
-		wantMsg string
+		a        *ast.LabeledStmt
+		b        *ast.LabeledStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.LabeledStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.LabeledStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.LabeledStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.LabeledStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.LabeledStmt{
@@ -5088,8 +8318,17 @@ func TestCompareLabeledStatements(t *testing.T) {
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"labels did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.LabeledStmt{
@@ -5098,68 +8337,131 @@ func TestCompareLabeledStatements(t *testing.T) {
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"labels did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"labeled statements did not match",
+				newTestNode(
+					"statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			b: &ast.LabeledStmt{
 				Label: ast.NewIdent("a"),
 				Stmt: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareLabeledStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareLabeledStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareLabeledStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5167,22 +8469,34 @@ func TestCompareLabeledStatements(t *testing.T) {
 
 func TestCompareExpressionStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ExprStmt
-		b       *ast.ExprStmt
-		want    int
-		wantMsg string
+		a        *ast.ExprStmt
+		b        *ast.ExprStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ExprStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ExprStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"expression statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ExprStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ExprStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"expression statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ExprStmt{
@@ -5191,8 +8505,17 @@ func TestCompareExpressionStatements(t *testing.T) {
 			b: &ast.ExprStmt{
 				X: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"expression statements did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ExprStmt{
@@ -5201,8 +8524,17 @@ func TestCompareExpressionStatements(t *testing.T) {
 			b: &ast.ExprStmt{
 				X: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"expression statements did not match",
+				newTestNode(
+					"expressions did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ExprStmt{
@@ -5215,16 +8547,16 @@ func TestCompareExpressionStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareExpressionStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareExpressionStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareExpressionStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5232,22 +8564,34 @@ func TestCompareExpressionStatements(t *testing.T) {
 
 func TestCompareSendStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.SendStmt
-		b       *ast.SendStmt
-		want    int
-		wantMsg string
+		a        *ast.SendStmt
+		b        *ast.SendStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.SendStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.SendStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.SendStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.SendStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SendStmt{
@@ -5256,8 +8600,20 @@ func TestCompareSendStatements(t *testing.T) {
 			b: &ast.SendStmt{
 				Chan: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"channels did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SendStmt{
@@ -5266,8 +8622,20 @@ func TestCompareSendStatements(t *testing.T) {
 			b: &ast.SendStmt{
 				Chan: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"channels did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SendStmt{
@@ -5278,8 +8646,20 @@ func TestCompareSendStatements(t *testing.T) {
 				Chan:  ast.NewIdent("a"),
 				Value: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"values did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SendStmt{
@@ -5290,8 +8670,20 @@ func TestCompareSendStatements(t *testing.T) {
 				Chan:  ast.NewIdent("a"),
 				Value: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"send statements did not match",
+				newTestNode(
+					"values did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SendStmt{
@@ -5306,16 +8698,16 @@ func TestCompareSendStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSendStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSendStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSendStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5323,42 +8715,76 @@ func TestCompareSendStatements(t *testing.T) {
 
 func TestCompareIncDecStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.IncDecStmt
-		b       *ast.IncDecStmt
-		want    int
-		wantMsg string
+		a        *ast.IncDecStmt
+		b        *ast.IncDecStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.IncDecStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.IncDecStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.IncDecStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.IncDecStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.IncDecStmt{
 				Tok: token.INT,
+				X:   ast.NewIdent("a"),
 			},
 			b: &ast.IncDecStmt{
 				Tok: token.FLOAT,
+				X:   ast.NewIdent("a"),
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IncDecStmt{
 				Tok: token.FLOAT,
+				X:   ast.NewIdent("a"),
 			},
 			b: &ast.IncDecStmt{
 				Tok: token.INT,
+				X:   ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IncDecStmt{
@@ -5369,8 +8795,20 @@ func TestCompareIncDecStatements(t *testing.T) {
 				Tok: token.INT,
 				X:   ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IncDecStmt{
@@ -5381,8 +8819,20 @@ func TestCompareIncDecStatements(t *testing.T) {
 				Tok: token.INT,
 				X:   ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"increment/decrement statements did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IncDecStmt{
@@ -5397,16 +8847,16 @@ func TestCompareIncDecStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareIncDecStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareIncDecStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareIncDecStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5414,42 +8864,92 @@ func TestCompareIncDecStatements(t *testing.T) {
 
 func TestCompareAssignStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.AssignStmt
-		b       *ast.AssignStmt
-		want    int
-		wantMsg string
+		a        *ast.AssignStmt
+		b        *ast.AssignStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.AssignStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a: nil,
+			b: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
+			want: 1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.AssignStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a: &ast.AssignStmt{
+				Lhs: []ast.Expr{
+					ast.NewIdent("i"),
+				},
+			},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
 				Tok: token.INT,
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 			},
 			b: &ast.AssignStmt{
 				Tok: token.FLOAT,
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
 				Tok: token.FLOAT,
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 			},
 			b: &ast.AssignStmt{
 				Tok: token.INT,
+				Lhs: []ast.Expr{
+					ast.NewIdent("a"),
+				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
@@ -5465,8 +8965,20 @@ func TestCompareAssignStatements(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"lhs did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 < 2", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
@@ -5482,8 +8994,20 @@ func TestCompareAssignStatements(t *testing.T) {
 					ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"lhs did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 2 > 1", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
@@ -5505,8 +9029,20 @@ func TestCompareAssignStatements(t *testing.T) {
 					ast.NewIdent("y"),
 				},
 			},
-			want:    -1,
-			wantMsg: "1 < 2",
+			want: -1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"rhs did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 < 2", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
@@ -5528,8 +9064,20 @@ func TestCompareAssignStatements(t *testing.T) {
 					ast.NewIdent("x"),
 				},
 			},
-			want:    1,
-			wantMsg: "2 > 1",
+			want: 1,
+			wantNode: newTestNode(
+				"assign statements did not match",
+				newTestNode(
+					"rhs did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 2 > 1", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.AssignStmt{
@@ -5554,16 +9102,16 @@ func TestCompareAssignStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareAssignStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareAssignStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareAssignStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5571,22 +9119,34 @@ func TestCompareAssignStatements(t *testing.T) {
 
 func TestCompareGoStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.GoStmt
-		b       *ast.GoStmt
-		want    int
-		wantMsg string
+		a        *ast.GoStmt
+		b        *ast.GoStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.GoStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.GoStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"go statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.GoStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.GoStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"go statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.GoStmt{
@@ -5599,8 +9159,26 @@ func TestCompareGoStatements(t *testing.T) {
 					Fun: ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"go statements did not match",
+				newTestNode(
+					"call expressions did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"functions did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GoStmt{
@@ -5613,8 +9191,26 @@ func TestCompareGoStatements(t *testing.T) {
 					Fun: ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"go statements did not match",
+				newTestNode(
+					"call expressions did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"functions did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.GoStmt{
@@ -5631,16 +9227,16 @@ func TestCompareGoStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareGoStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareGoStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareGoStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5648,22 +9244,34 @@ func TestCompareGoStatements(t *testing.T) {
 
 func TestCompareDeferStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.DeferStmt
-		b       *ast.DeferStmt
-		want    int
-		wantMsg string
+		a        *ast.DeferStmt
+		b        *ast.DeferStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.DeferStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.DeferStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"defer statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.DeferStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.DeferStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"defer statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.DeferStmt{
@@ -5676,8 +9284,26 @@ func TestCompareDeferStatements(t *testing.T) {
 					Fun: ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"defer statements did not match",
+				newTestNode(
+					"call expressions did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"functions did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.DeferStmt{
@@ -5690,8 +9316,26 @@ func TestCompareDeferStatements(t *testing.T) {
 					Fun: ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"defer statements did not match",
+				newTestNode(
+					"call expressions did not match",
+					newTestNode(
+						"call expressions did not match",
+						newTestNode(
+							"functions did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.DeferStmt{
@@ -5708,16 +9352,16 @@ func TestCompareDeferStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareDeferStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareDeferStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareDeferStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5725,22 +9369,34 @@ func TestCompareDeferStatements(t *testing.T) {
 
 func TestCompareReturnStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ReturnStmt
-		b       *ast.ReturnStmt
-		want    int
-		wantMsg string
+		a        *ast.ReturnStmt
+		b        *ast.ReturnStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ReturnStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ReturnStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"return statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ReturnStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ReturnStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"return statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ReturnStmt{
@@ -5753,8 +9409,26 @@ func TestCompareReturnStatements(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"return statements did not match",
+				newTestNode(
+					"results did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"expressions at index 0 did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ReturnStmt{
@@ -5767,8 +9441,26 @@ func TestCompareReturnStatements(t *testing.T) {
 					ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"return statements did not match",
+				newTestNode(
+					"results did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"expressions at index 0 did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ReturnStmt{
@@ -5785,16 +9477,16 @@ func TestCompareReturnStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareReturnStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareReturnStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareReturnStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5802,22 +9494,34 @@ func TestCompareReturnStatements(t *testing.T) {
 
 func TestCompareBranchStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.BranchStmt
-		b       *ast.BranchStmt
-		want    int
-		wantMsg string
+		a        *ast.BranchStmt
+		b        *ast.BranchStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.BranchStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.BranchStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.BranchStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.BranchStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.BranchStmt{
@@ -5826,8 +9530,17 @@ func TestCompareBranchStatements(t *testing.T) {
 			b: &ast.BranchStmt{
 				Tok: token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BranchStmt{
@@ -5836,8 +9549,17 @@ func TestCompareBranchStatements(t *testing.T) {
 			b: &ast.BranchStmt{
 				Tok: token.INT,
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BranchStmt{
@@ -5848,8 +9570,17 @@ func TestCompareBranchStatements(t *testing.T) {
 				Tok:   token.INT,
 				Label: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"labels did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: a < b", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BranchStmt{
@@ -5860,8 +9591,17 @@ func TestCompareBranchStatements(t *testing.T) {
 				Tok:   token.INT,
 				Label: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"branch statements did not match",
+				newTestNode(
+					"labels did not match",
+					newTestNode(
+						"identifiers did not match",
+						newTestNode("strings did not match: b > a", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.BranchStmt{
@@ -5876,16 +9616,16 @@ func TestCompareBranchStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareBranchStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareBranchStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareBranchStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -5893,93 +9633,195 @@ func TestCompareBranchStatements(t *testing.T) {
 
 func TestCompareIfStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.IfStmt
-		b       *ast.IfStmt
-		want    int
-		wantMsg string
+		a        *ast.IfStmt
+		b        *ast.IfStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.IfStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.IfStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.IfStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.IfStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"conditions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("b"),
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"conditions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
@@ -5987,29 +9829,65 @@ func TestCompareIfStatements(t *testing.T) {
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
@@ -6017,138 +9895,259 @@ func TestCompareIfStatements(t *testing.T) {
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
+
 				Else: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 				Else: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"else statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 				Else: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 				Else: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"if statements did not match",
+				newTestNode(
+					"else statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 				Else: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
 			b: &ast.IfStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("x"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("y"),
+							},
 						},
 					},
 				},
 				Else: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("z"),
+					},
 				},
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareIfStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareIfStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareIfStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6156,22 +10155,34 @@ func TestCompareIfStatements(t *testing.T) {
 
 func TestCompareCaseClauses(t *testing.T) {
 	testCases := []struct {
-		a       *ast.CaseClause
-		b       *ast.CaseClause
-		want    int
-		wantMsg string
+		a        *ast.CaseClause
+		b        *ast.CaseClause
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.CaseClause{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.CaseClause{},
+			want: 1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.CaseClause{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.CaseClause{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CaseClause{
@@ -6184,8 +10195,26 @@ func TestCompareCaseClauses(t *testing.T) {
 					ast.NewIdent("b"),
 				},
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"lists did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"expressions at index 0 did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CaseClause{
@@ -6198,8 +10227,26 @@ func TestCompareCaseClauses(t *testing.T) {
 					ast.NewIdent("a"),
 				},
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"lists did not match",
+					newTestNode(
+						"expression lists did not match",
+						newTestNode(
+							"expressions at index 0 did not match",
+							newTestNode(
+								"expressions did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CaseClause{
@@ -6209,6 +10256,9 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
@@ -6219,11 +10269,38 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.FLOAT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"statement lists did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CaseClause{
@@ -6233,6 +10310,9 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.FLOAT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
@@ -6243,11 +10323,38 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"case clauses did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"statement lists did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CaseClause{
@@ -6257,6 +10364,9 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
@@ -6267,6 +10377,9 @@ func TestCompareCaseClauses(t *testing.T) {
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
@@ -6274,16 +10387,16 @@ func TestCompareCaseClauses(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareCaseClauses(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareCaseClauses(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareCaseClauses(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6291,98 +10404,230 @@ func TestCompareCaseClauses(t *testing.T) {
 
 func TestCompareStatementLists(t *testing.T) {
 	testCases := []struct {
-		a       []ast.Stmt
-		b       []ast.Stmt
-		want    int
-		wantMsg string
+		a        []ast.Stmt
+		b        []ast.Stmt
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []ast.Stmt{},
 			b: []ast.Stmt{
-				&ast.AssignStmt{},
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
+				},
 			},
-			want:    -1,
-			wantMsg: "0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"statement lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 0 < 1", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Stmt{
-				&ast.AssignStmt{},
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
+				},
 			},
-			b:       []ast.Stmt{},
-			want:    1,
-			wantMsg: "1 > 0",
+			b:    []ast.Stmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"statement lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 > 0", nil),
+				),
+			),
 		},
 		{
 			a: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newNode(
+				"statement lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"statements at index 0 did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"statements at index 1 did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 6 > 5", nil),
+									),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newNode(
+				"statement lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"statements at index 0 did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 6 > 5", nil),
+									),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"statements at index 1 did not match",
+						newTestNode(
+							"statements did not match",
+							newTestNode(
+								"assign statements did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode("ints did not match: 5 < 6", nil),
+									),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: []ast.Stmt{
 				&ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				&ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareStatementLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareStatementLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareStatementLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6390,93 +10635,195 @@ func TestCompareStatementLists(t *testing.T) {
 
 func TestCompareSwitchStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.SwitchStmt
-		b       *ast.SwitchStmt
-		want    int
-		wantMsg string
+		a        *ast.SwitchStmt
+		b        *ast.SwitchStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.SwitchStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.SwitchStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.SwitchStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.SwitchStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 			},
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"tags did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("b"),
 			},
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"tags did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6484,29 +10831,65 @@ func TestCompareSwitchStatements(t *testing.T) {
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6514,29 +10897,65 @@ func TestCompareSwitchStatements(t *testing.T) {
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"switch statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6544,12 +10963,18 @@ func TestCompareSwitchStatements(t *testing.T) {
 			b: &ast.SwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Tag: ast.NewIdent("a"),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6558,16 +10983,16 @@ func TestCompareSwitchStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSwitchStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSwitchStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSwitchStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6575,103 +11000,232 @@ func TestCompareSwitchStatements(t *testing.T) {
 
 func TestCompareTypeSwitchStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.TypeSwitchStmt
-		b       *ast.TypeSwitchStmt
-		want    int
-		wantMsg string
+		a        *ast.TypeSwitchStmt
+		b        *ast.TypeSwitchStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.TypeSwitchStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.TypeSwitchStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.TypeSwitchStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.TypeSwitchStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"assign statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"assign statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6679,33 +11233,75 @@ func TestCompareTypeSwitchStatements(t *testing.T) {
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6713,33 +11309,75 @@ func TestCompareTypeSwitchStatements(t *testing.T) {
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"type switch statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6747,14 +11385,23 @@ func TestCompareTypeSwitchStatements(t *testing.T) {
 			b: &ast.TypeSwitchStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Assign: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6763,16 +11410,16 @@ func TestCompareTypeSwitchStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareTypeSwitchStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareTypeSwitchStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareTypeSwitchStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6780,117 +11427,261 @@ func TestCompareTypeSwitchStatements(t *testing.T) {
 
 func TestCompareCommClauses(t *testing.T) {
 	testCases := []struct {
-		a       *ast.CommClause
-		b       *ast.CommClause
-		want    int
-		wantMsg string
+		a        *ast.CommClause
+		b        *ast.CommClause
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.CommClause{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.CommClause{},
+			want: 1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.CommClause{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.CommClause{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"comm statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.FLOAT,
-				},
-			},
-			b: &ast.CommClause{
-				Comm: &ast.AssignStmt{
-					Tok: token.INT,
-				},
-			},
-			want:    1,
-			wantMsg: "6 > 5",
-		},
-		{
-			a: &ast.CommClause{
-				Comm: &ast.AssignStmt{
-					Tok: token.INT,
-				},
-				Body: []ast.Stmt{
-					&ast.AssignStmt{
-						Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
 					},
 				},
 			},
 			b: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
+				},
+			},
+			want: 1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"comm statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
+		},
+		{
+			a: &ast.CommClause{
+				Comm: &ast.AssignStmt{
+					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
+				},
+				Body: []ast.Stmt{
+					&ast.AssignStmt{
+						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
+					},
+				},
+			},
+			b: &ast.CommClause{
+				Comm: &ast.AssignStmt{
+					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.FLOAT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"statement lists did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.FLOAT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
 			b: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"comm clauses did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"statement lists did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
 			b: &ast.CommClause{
 				Comm: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: []ast.Stmt{
 					&ast.AssignStmt{
 						Tok: token.INT,
+						Lhs: []ast.Expr{
+							ast.NewIdent("i"),
+						},
 					},
 				},
 			},
@@ -6898,16 +11689,16 @@ func TestCompareCommClauses(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareCommClauses(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareCommClauses(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareCommClauses(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -6915,22 +11706,34 @@ func TestCompareCommClauses(t *testing.T) {
 
 func TestCompareSelectStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.SelectStmt
-		b       *ast.SelectStmt
-		want    int
-		wantMsg string
+		a        *ast.SelectStmt
+		b        *ast.SelectStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.SelectStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.SelectStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"select statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.SelectStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.SelectStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"select statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.SelectStmt{
@@ -6938,6 +11741,9 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6947,12 +11753,39 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"select statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectStmt{
@@ -6960,6 +11793,9 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6969,12 +11805,39 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"select statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.SelectStmt{
@@ -6982,6 +11845,9 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6991,6 +11857,9 @@ func TestCompareSelectStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -6999,16 +11868,16 @@ func TestCompareSelectStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareSelectStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareSelectStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareSelectStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -7016,140 +11885,305 @@ func TestCompareSelectStatements(t *testing.T) {
 
 func TestCompareForStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.ForStmt
-		b       *ast.ForStmt
-		want    int
-		wantMsg string
+		a        *ast.ForStmt
+		b        *ast.ForStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.ForStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.ForStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.ForStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.ForStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"init statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"conditions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("b"),
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"conditions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"post statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.FLOAT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"post statements did not match",
+					newTestNode(
+						"statements did not match",
+						newTestNode(
+							"assign statements did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7157,35 +12191,77 @@ func TestCompareForStatements(t *testing.T) {
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7193,35 +12269,77 @@ func TestCompareForStatements(t *testing.T) {
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"for statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7229,15 +12347,24 @@ func TestCompareForStatements(t *testing.T) {
 			b: &ast.ForStmt{
 				Init: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Cond: ast.NewIdent("a"),
 				Post: &ast.AssignStmt{
 					Tok: token.INT,
+					Lhs: []ast.Expr{
+						ast.NewIdent("i"),
+					},
 				},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7246,16 +12373,16 @@ func TestCompareForStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareForStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareForStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareForStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -7263,22 +12390,34 @@ func TestCompareForStatements(t *testing.T) {
 
 func TestCompareRangeStatements(t *testing.T) {
 	testCases := []struct {
-		a       *ast.RangeStmt
-		b       *ast.RangeStmt
-		want    int
-		wantMsg string
+		a        *ast.RangeStmt
+		b        *ast.RangeStmt
+		want     int
+		wantNode *node
 	}{
 		{
-			a:       nil,
-			b:       &ast.RangeStmt{},
-			want:    1,
-			wantMsg: "true > false",
+			a:    nil,
+			b:    &ast.RangeStmt{},
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: true > false", nil),
+				),
+			),
 		},
 		{
-			a:       &ast.RangeStmt{},
-			b:       nil,
-			want:    -1,
-			wantMsg: "false < true",
+			a:    &ast.RangeStmt{},
+			b:    nil,
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"nil comparisons did not match",
+					newTestNode("bools did not match: false < true", nil),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7287,8 +12426,20 @@ func TestCompareRangeStatements(t *testing.T) {
 			b: &ast.RangeStmt{
 				Key: ast.NewIdent("b"),
 			},
-			want:    -1,
-			wantMsg: "a < b",
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"key statements did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: a < b", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7297,8 +12448,20 @@ func TestCompareRangeStatements(t *testing.T) {
 			b: &ast.RangeStmt{
 				Key: ast.NewIdent("a"),
 			},
-			want:    1,
-			wantMsg: "b > a",
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"key statements did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: b > a", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7309,8 +12472,20 @@ func TestCompareRangeStatements(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("y"),
 			},
-			want:    -1,
-			wantMsg: "x < y",
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"value statements did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: x < y", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7321,8 +12496,20 @@ func TestCompareRangeStatements(t *testing.T) {
 				Key:   ast.NewIdent("a"),
 				Value: ast.NewIdent("x"),
 			},
-			want:    1,
-			wantMsg: "y > x",
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"value statements did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: y > x", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7335,8 +12522,17 @@ func TestCompareRangeStatements(t *testing.T) {
 				Value: ast.NewIdent("x"),
 				Tok:   token.FLOAT,
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 5 < 6", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7349,8 +12545,17 @@ func TestCompareRangeStatements(t *testing.T) {
 				Value: ast.NewIdent("x"),
 				Tok:   token.INT,
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"tokens did not match",
+					newTestNode(
+						"tokens did not match",
+						newTestNode("ints did not match: 6 > 5", nil),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7365,8 +12570,20 @@ func TestCompareRangeStatements(t *testing.T) {
 				Tok:   token.INT,
 				X:     ast.NewIdent("n"),
 			},
-			want:    -1,
-			wantMsg: "m < n",
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: m < n", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7381,8 +12598,20 @@ func TestCompareRangeStatements(t *testing.T) {
 				Tok:   token.INT,
 				X:     ast.NewIdent("m"),
 			},
-			want:    1,
-			wantMsg: "n > m",
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"X expressions did not match",
+					newTestNode(
+						"expressions did not match",
+						newTestNode(
+							"identifiers did not match",
+							newTestNode("strings did not match: n > m", nil),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7394,6 +12623,9 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7407,12 +12639,39 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    -1,
-			wantMsg: "5 < 6",
+			want: -1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 5 < 6", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7424,6 +12683,9 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.FLOAT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7437,12 +12699,39 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
 			},
-			want:    1,
-			wantMsg: "6 > 5",
+			want: 1,
+			wantNode: newTestNode(
+				"range statements did not match",
+				newTestNode(
+					"bodies did not match",
+					newTestNode(
+						"block statements did not match",
+						newTestNode(
+							"statements at index 0 did not match",
+							newTestNode(
+								"statements did not match",
+								newTestNode(
+									"assign statements did not match",
+									newTestNode(
+										"tokens did not match",
+										newTestNode(
+											"tokens did not match",
+											newTestNode("ints did not match: 6 > 5", nil),
+										),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
 		},
 		{
 			a: &ast.RangeStmt{
@@ -7454,6 +12743,9 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7467,6 +12759,9 @@ func TestCompareRangeStatements(t *testing.T) {
 					List: []ast.Stmt{
 						&ast.AssignStmt{
 							Tok: token.INT,
+							Lhs: []ast.Expr{
+								ast.NewIdent("i"),
+							},
 						},
 					},
 				},
@@ -7475,16 +12770,16 @@ func TestCompareRangeStatements(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareRangeStatements(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareRangeStatements(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareRangeStatements(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -7492,26 +12787,38 @@ func TestCompareRangeStatements(t *testing.T) {
 
 func TestCompareGenDeclLists(t *testing.T) {
 	testCases := []struct {
-		a       []*ast.GenDecl
-		b       []*ast.GenDecl
-		want    int
-		wantMsg string
+		a        []*ast.GenDecl
+		b        []*ast.GenDecl
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []*ast.GenDecl{},
 			b: []*ast.GenDecl{
 				{},
 			},
-			want:    -1,
-			wantMsg: "0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"generic declaration lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 0 < 1", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.GenDecl{
 				{},
 			},
-			b:       []*ast.GenDecl{},
-			want:    1,
-			wantMsg: "1 > 0",
+			b:    []*ast.GenDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"generic declaration lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 > 0", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.GenDecl{
@@ -7530,8 +12837,40 @@ func TestCompareGenDeclLists(t *testing.T) {
 					Tok: token.INT,
 				},
 			},
-			want:    -1,
-			wantMsg: "generic declarations did not match: generic declaration tokens did not match: 5 < 6",
+			want: -1,
+			wantNode: newNode(
+				"generic declaration lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"generic declarations at index 0 did not match",
+						newTestNode(
+							"generic declarations did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"generic declarations at index 1 did not match",
+						newTestNode(
+							"generic declarations did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.GenDecl{
@@ -7550,8 +12889,40 @@ func TestCompareGenDeclLists(t *testing.T) {
 					Tok: token.FLOAT,
 				},
 			},
-			want:    1,
-			wantMsg: "generic declarations did not match: generic declaration tokens did not match: 6 > 5",
+			want: 1,
+			wantNode: newNode(
+				"generic declaration lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"generic declarations at index 0 did not match",
+						newTestNode(
+							"generic declarations did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 6 > 5", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"generic declarations at index 1 did not match",
+						newTestNode(
+							"generic declarations did not match",
+							newTestNode(
+								"tokens did not match",
+								newTestNode(
+									"tokens did not match",
+									newTestNode("ints did not match: 5 < 6", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.GenDecl{
@@ -7574,16 +12945,16 @@ func TestCompareGenDeclLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareGenDeclLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareGenDeclLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareGenDeclLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -7591,98 +12962,190 @@ func TestCompareGenDeclLists(t *testing.T) {
 
 func TestCompareFuncDeclLists(t *testing.T) {
 	testCases := []struct {
-		a       []*ast.FuncDecl
-		b       []*ast.FuncDecl
-		want    int
-		wantMsg string
+		a        []*ast.FuncDecl
+		b        []*ast.FuncDecl
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []*ast.FuncDecl{},
 			b: []*ast.FuncDecl{
-				{},
+				{
+					Type: &ast.FuncType{},
+				},
 			},
-			want:    -1,
-			wantMsg: "length of function declaration lists did not match: 0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"function declaration lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 0 < 1", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.FuncDecl{
-				{},
+				{
+					Type: &ast.FuncType{},
+				},
 			},
-			b:       []*ast.FuncDecl{},
-			want:    1,
-			wantMsg: "length of function declaration lists did not match: 1 > 0",
+			b:    []*ast.FuncDecl{},
+			want: 1,
+			wantNode: newTestNode(
+				"function declaration lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 > 0", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
-			want:    -1,
-			wantMsg: "function declarations at index 0 did not match: function names did not match: a < b",
+			want: -1,
+			wantNode: newNode(
+				"function declaration lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"function declarations at index 0 did not match",
+						newTestNode(
+							"function declarations did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"function declarations at index 1 did not match",
+						newTestNode(
+							"function declarations did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
-			want:    1,
-			wantMsg: "function declarations at index 0 did not match: function names did not match: b > a",
+			want: 1,
+			wantNode: newNode(
+				"function declaration lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"function declarations at index 0 did not match",
+						newTestNode(
+							"function declarations did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"function declarations at index 1 did not match",
+						newTestNode(
+							"function declarations did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
 			b: []*ast.FuncDecl{
 				{
 					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
 				},
 				{
 					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
 				},
 			},
 			want: 0,
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareFuncDeclLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareFuncDeclLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareFuncDeclLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
 			)
 		}
 	}
@@ -7690,26 +13153,38 @@ func TestCompareFuncDeclLists(t *testing.T) {
 
 func TestCompareImportSpecLists(t *testing.T) {
 	testCases := []struct {
-		a       []*ast.ImportSpec
-		b       []*ast.ImportSpec
-		want    int
-		wantMsg string
+		a        []*ast.ImportSpec
+		b        []*ast.ImportSpec
+		want     int
+		wantNode *node
 	}{
 		{
 			a: []*ast.ImportSpec{},
 			b: []*ast.ImportSpec{
 				{},
 			},
-			want:    -1,
-			wantMsg: "length of import lists did not match: 0 < 1",
+			want: -1,
+			wantNode: newTestNode(
+				"import spec lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 0 < 1", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.ImportSpec{
 				{},
 			},
-			b:       []*ast.ImportSpec{},
-			want:    1,
-			wantMsg: "length of import lists did not match: 1 > 0",
+			b:    []*ast.ImportSpec{},
+			want: 1,
+			wantNode: newTestNode(
+				"import spec lists did not match",
+				newTestNode(
+					"length of lists did not match",
+					newTestNode("ints did not match: 1 > 0", nil),
+				),
+			),
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7728,8 +13203,40 @@ func TestCompareImportSpecLists(t *testing.T) {
 					Name: ast.NewIdent("a"),
 				},
 			},
-			want:    -1,
-			wantMsg: "imports at index 0 did not match: import names did not match: a < b",
+			want: -1,
+			wantNode: newNode(
+				"import spec lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"import specs at index 0 did not match",
+						newTestNode(
+							"import specs did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"import specs at index 1 did not match",
+						newTestNode(
+							"import specs did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7748,8 +13255,40 @@ func TestCompareImportSpecLists(t *testing.T) {
 					Name: ast.NewIdent("b"),
 				},
 			},
-			want:    1,
-			wantMsg: "imports at index 0 did not match: import names did not match: b > a",
+			want: 1,
+			wantNode: newNode(
+				"import spec lists did not match",
+				nil,
+				nil,
+				&[]*node{
+					newTestNode(
+						"import specs at index 0 did not match",
+						newTestNode(
+							"import specs did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: b > a", nil),
+								),
+							),
+						),
+					),
+					newTestNode(
+						"import specs at index 1 did not match",
+						newTestNode(
+							"import specs did not match",
+							newTestNode(
+								"names did not match",
+								newTestNode(
+									"identifiers did not match",
+									newTestNode("strings did not match: a < b", nil),
+								),
+							),
+						),
+					),
+				},
+			),
 		},
 		{
 			a: []*ast.ImportSpec{
@@ -7772,16 +13311,153 @@ func TestCompareImportSpecLists(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		got, gotMsg := compareImportSpecLists(c.a, c.b)
-		if got != c.want || gotMsg != c.wantMsg {
+		got, gotNode := compareImportSpecLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
 			t.Errorf(
 				"compareImportSpecLists(%v, %v) == (%d, %s), want (%d, %s)",
 				c.a,
 				c.b,
 				got,
-				gotMsg,
+				gotNode,
 				c.want,
-				c.wantMsg,
+				c.wantNode,
+			)
+		}
+	}
+}
+
+func TestCompareDeclLists(t *testing.T) {
+	testCases := []struct {
+		a        []ast.Decl
+		b        []ast.Decl
+		want     int
+		wantNode *node
+	}{
+		{
+			a: []ast.Decl{},
+			b: []ast.Decl{
+				&ast.FuncDecl{
+					Type: &ast.FuncType{},
+				},
+			},
+			want: -1,
+			wantNode: newTestNode(
+				"declaration lists did not match",
+				newTestNode(
+					"function declaration lists did not match",
+					newTestNode(
+						"function declaration lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 0 < 1", nil),
+						),
+					),
+				),
+			),
+		},
+		{
+			a: []ast.Decl{
+				&ast.FuncDecl{
+					Type: &ast.FuncType{},
+				},
+			},
+			b:    []ast.Decl{},
+			want: 1,
+			wantNode: newTestNode(
+				"declaration lists did not match",
+				newTestNode(
+					"function declaration lists did not match",
+					newTestNode(
+						"function declaration lists did not match",
+						newTestNode(
+							"length of lists did not match",
+							newTestNode("ints did not match: 1 > 0", nil),
+						),
+					),
+				),
+			),
+		},
+		{
+			a: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+			},
+			b: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+			},
+			want: 0, // Order of declarations in list does not matter
+		},
+		{
+			a: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+			},
+			b: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+			},
+			want: 0, // Order of declarations in list does not matter
+		},
+		{
+			a: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+			},
+			b: []ast.Decl{
+				&ast.FuncDecl{
+					Name: ast.NewIdent("a"),
+					Type: &ast.FuncType{},
+				},
+				&ast.FuncDecl{
+					Name: ast.NewIdent("b"),
+					Type: &ast.FuncType{},
+				},
+			},
+			want: 0,
+		},
+	}
+	for _, c := range testCases {
+		got, gotNode := compareDeclLists(c.a, c.b)
+		if got != c.want || !reflect.DeepEqual(gotNode, c.wantNode) {
+			t.Errorf(
+				"compareDeclLists(%v, %v) == (%d, %s), want (%d, %s)",
+				c.a,
+				c.b,
+				got,
+				gotNode,
+				c.want,
+				c.wantNode,
 			)
 		}
 	}

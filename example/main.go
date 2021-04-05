@@ -2,40 +2,39 @@ package main
 
 import (
 	"fmt"
-	"github.com/kevinmbeaulieu/eq-go/eq-go"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	eqgo "github.com/kevinmbeaulieu/eq-go/eq-go"
 )
 
 func main() {
-	// Compare two directories
-	pathPkgA, err := filepath.Abs("example/package-a")
-	panicIfError(err)
-	pathPkgB, err := filepath.Abs("example/package-b")
-	panicIfError(err)
-	eq, msg := eqgo.DirectoriesEquivalent(pathPkgA, pathPkgB)
-	fmt.Printf("Directories result: %t (%s)\n", eq, msg)
-
 	// Compare two packages
-	pkgA := loadPackage("package-a", pathPkgA)
-	pkgB := loadPackage("package-b", pathPkgB)
-	eq, msg = eqgo.PackagesEquivalent(pkgA, pkgB)
-	fmt.Printf("Packages result: %t (%s)\n", eq, msg)
+	lhsPkgPath, err := filepath.Abs("package-a")
+	panicIfError(err)
+	rhsPkgPath, err := filepath.Abs("package-b")
+	panicIfError(err)
+	lhsPkg, lhsFSet := loadPackage("package-a", lhsPkgPath)
+	rhsPkg, rhsFSet := loadPackage("package-b", rhsPkgPath)
+	eq, msg := eqgo.PackagesEquivalent(lhsPkg, lhsFSet, rhsPkg, rhsFSet, nil)
+	fmt.Printf("Packages result: %t\n%s\n\n", eq, msg)
 
 	// Compare two files
 	fset := token.NewFileSet()
-	pathFoo, err := filepath.Abs("example/package-a/foo.go")
-	pathBar, err := filepath.Abs("example/package-b/bar.go")
-	fileA, err := parser.ParseFile(fset, pathFoo, nil, parser.AllErrors)
+	lhsFilePath, err := filepath.Abs("package-a/foo.go")
 	panicIfError(err)
-	fileB, err := parser.ParseFile(fset, pathBar, nil, parser.AllErrors)
+	rhsFilePath, err := filepath.Abs("package-b/bar.go")
 	panicIfError(err)
-	eq, msg = eqgo.FilesEquivalent(fileA, fileB)
-	fmt.Printf("Files result: %t (%s)\n", eq, msg)
+	lhsFile, err := parser.ParseFile(fset, lhsFilePath, nil, parser.AllErrors)
+	panicIfError(err)
+	rhsFile, err := parser.ParseFile(fset, rhsFilePath, nil, parser.AllErrors)
+	panicIfError(err)
+	eq, msg = eqgo.FilesEquivalent(lhsFile, fset, rhsFile, fset, nil)
+	fmt.Printf("Files result: %t\n%s\n\n", eq, msg)
 }
 
 func panicIfError(err error) {
@@ -46,7 +45,7 @@ func panicIfError(err error) {
 	panic(err)
 }
 
-func loadPackage(name string, path string) *ast.Package {
+func loadPackage(name string, path string) (*ast.Package, *token.FileSet) {
 	pkg := ast.Package{
 		Name:  name,
 		Files: make(map[string]*ast.File),
@@ -66,5 +65,5 @@ func loadPackage(name string, path string) *ast.Package {
 		pkg.Files[filename] = src
 	}
 
-	return &pkg
+	return &pkg, fset
 }
