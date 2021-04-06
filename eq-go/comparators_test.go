@@ -13421,7 +13421,7 @@ func TestCompareDeclLists(t *testing.T) {
 					Type: &ast.FuncType{},
 				},
 			},
-			want: 0, // Order of declarations in list does not matter
+			want: 1, // Order of declarations in list does not matter
 		},
 		{
 			a: []ast.Decl{
