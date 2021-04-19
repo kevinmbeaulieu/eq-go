@@ -25,6 +25,9 @@ func PackagesEquivalent(a *ast.Package, fsetA *token.FileSet, b *ast.Package, fs
 		panic(fmt.Errorf("missing package"))
 	}
 
+	equivalentPackageNameA = a.Name
+	equivalentPackageNameB = b.Name
+
 	mergeMode := ast.FilterUnassociatedComments | ast.FilterImportDuplicates
 	mergedFileA := ast.MergePackageFiles(a, mergeMode)
 	mergedFileB := ast.MergePackageFiles(b, mergeMode)

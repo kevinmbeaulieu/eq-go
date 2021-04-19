@@ -16,6 +16,10 @@ import (
 // Each method returns an int representing the result of the comparison check and a tree node
 // providing more info about the differences if the two inputs were not equivalent.
 
+// TODO: (kevinb) Refactor to avoid using global variables for these.
+var equivalentPackageNameA string
+var equivalentPackageNameB string
+
 type node struct {
 	msg      string
 	leftPos  token.Pos
@@ -133,6 +137,11 @@ func compareBools(a bool, b bool) (int, *node) {
 }
 
 func compareStrings(a string, b string) (int, *node) {
+	if equivalentPackageNameA != "" && equivalentPackageNameB != "" {
+		a = strings.ReplaceAll(a, equivalentPackageNameB, equivalentPackageNameA)
+		b = strings.ReplaceAll(b, equivalentPackageNameB, equivalentPackageNameA)
+	}
+
 	if a < b {
 		return -1, newNode(fmt.Sprintf("strings did not match: %s < %s", a, b), nil, nil, nil)
 	} else if a > b {
